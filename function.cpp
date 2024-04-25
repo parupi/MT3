@@ -194,3 +194,32 @@ Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix)
 	result.z /= w;
 	return result;
 }
+
+Matrix4x4 MakeRotateXMatrix(float radian)
+{
+	return {
+		1, 0, 0, 0,
+		0, std::cos(radian), std::sin(radian), 0,
+		0,-std::sin(radian), std::cos(radian), 0,
+		0, 0, 0, 1
+	};
+}
+
+Matrix4x4 MakeRotateYMatrix(float radian)
+{
+	return {
+		std::cos(radian), 0, -std::sin(radian), 0,
+		0, 1, 0, 0,
+		std::sin(radian), 0, std::cos(radian), 0,
+		0, 0, 0, 1 };
+}
+
+Matrix4x4 MakeRotateZMatrix(float radian)
+{
+	return {
+		std::cos(radian), std::sin(radian), 0, 0,
+		-std::sin(radian), std::cos(radian), 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1,
+	};
+}
