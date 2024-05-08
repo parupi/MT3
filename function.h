@@ -124,3 +124,5 @@ Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float botto
 
 // 3. ビューポート変換行列
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
+
+Vector3 Multiply(const Matrix4x4& mat, const Vector3& vec);
