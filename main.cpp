@@ -21,8 +21,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	Vector3 rotate{};
 	Vector3 translate{};
-	Vector3 kLocalVertices[3]{ {0,0,0}, { 0,0,0 }, { 0,0,0 } };
-	Vector3 cameraPosition{ 0, 0, 0 };
+	Vector3 kLocalVertices[3]{ {0,1,0}, { 1,-1,0 }, { -1,-1,0 } };
+	Vector3 cameraPosition{ 0, 0, -10 };
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -38,6 +38,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		// キー入力の処理を書く
+		if (keys[DIK_W]) {
+			translate.z += 0.1f;
+		}
+		if (keys[DIK_A]) {
+			translate.x -= 0.1f;
+		}
+		if (keys[DIK_S]) {
+			translate.z -= 0.1f;
+		}
+		if (keys[DIK_D]) {
+			translate.x += 0.1f;
+		}
+
+		rotate.y += 0.05f;
 
 		// 各種行列の計算
 		Matrix4x4 worldMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, rotate, translate);
@@ -61,7 +75,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		VectorScreenPrintf(0, 0, cross, "Cross");
-		Novice::DrawTriangle(int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x), int(screenVertices[1].y), int(screenVertices[2].x), int(screenVertices[3].y), 0xFF0000FF, kFillModeSolid);
+		Novice::DrawTriangle(int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x), int(screenVertices[1].y), int(screenVertices[2].x), int(screenVertices[2].y), 0xFF0000FF, kFillModeSolid);
 
 		///
 		/// ↑描画処理ここまで
