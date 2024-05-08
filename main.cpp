@@ -66,6 +66,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			screenVertices[i] = Transform(ndcVertex, viewportMatrix);
 		}
 
+		Matrix4x4 rotationMatrix = MakeRotateYMatrix(rotate.y);
+		Vector3 cameraDirection = Normalize(Multiply(rotationMatrix, cameraPosition));  // カメラのZ軸方向を基準に回転を適用
+		Vector3 triangleNormal = Normalize(Cross(Subtract(kLocalVertices[1], kLocalVertices[0]), Subtract(kLocalVertices[2], kLocalVertices[0])));
+		float dotProduct = Dot(cameraDirection, triangleNormal);
+
 		///
 		/// ↑更新処理ここまで
 		///
@@ -75,8 +80,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		VectorScreenPrintf(0, 0, cross, "Cross");
-		Novice::DrawTriangle(int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x), int(screenVertices[1].y), int(screenVertices[2].x), int(screenVertices[2].y), 0xFF0000FF, kFillModeSolid);
 
+		if (dotProduct >= 0) {
+			Novice::DrawTriangle(int(screenVertices[0].x), int(screenVertices[0].y), int(screenVertices[1].x), int(screenVertices[1].y), int(screenVertices[2].x), int(screenVertices[2].y), 0xFF0000FF, kFillModeSolid);
+		}
+	
 		///
 		/// ↑描画処理ここまで
 		///
