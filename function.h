@@ -3,6 +3,9 @@
 #include <math.h>
 #include <cassert>
 #include <cmath>
+#include <imgui.h>
+#include "assert.h"
+
 
 static const int kColumnWidth = 60;
 const int kRowHeight = 22;
@@ -16,6 +19,13 @@ struct Vector2 {
 };
 
 struct Vector3 {
+	float x;
+	float y;
+	float z;
+};
+
+struct Vector4 {
+	float w;
 	float x;
 	float y;
 	float z;
@@ -126,3 +136,8 @@ Matrix4x4 MakeOrthographicMatrix(float left, float top, float right, float botto
 Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth);
 
 Vector3 Multiply(const Matrix4x4& mat, const Vector3& vec);
+
+// クロス積
+Vector3 Cross(const Vector3& v1, const Vector3& v2);
+
+Vector4 Multiply(const Matrix4x4& mat, const Vector4& vec);

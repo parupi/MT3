@@ -257,3 +257,20 @@ Vector3 Multiply(const Matrix4x4& mat, const Vector3& vec) {
 	result.z = mat.m[2][0] * vec.x + mat.m[2][1] * vec.y + mat.m[2][2] * vec.z + mat.m[2][3];
 	return result;
 }
+
+Vector3 Cross(const Vector3& v1, const Vector3& v2)
+{
+	return { v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x };
+}
+
+Vector4 Multiply(const Matrix4x4& mat, const Vector4& vec) {
+	Vector4 result;
+
+	// 行列の各行とベクトルとの内積を計算
+	result.x = mat.m[0][0] * vec.x + mat.m[0][1] * vec.y + mat.m[0][2] * vec.z + mat.m[0][3] * vec.w;
+	result.y = mat.m[1][0] * vec.x + mat.m[1][1] * vec.y + mat.m[1][2] * vec.z + mat.m[1][3] * vec.w;
+	result.z = mat.m[2][0] * vec.x + mat.m[2][1] * vec.y + mat.m[2][2] * vec.z + mat.m[2][3] * vec.w;
+	result.w = mat.m[3][0] * vec.x + mat.m[3][1] * vec.y + mat.m[3][2] * vec.z + mat.m[3][3] * vec.w;
+
+	return result;
+}
