@@ -3,6 +3,9 @@
 #include <math.h>
 #include <cassert>
 #include <cmath>
+#include <imgui.h>
+#include "assert.h"
+
 
 static const int kColumnWidth = 60;
 const int kRowHeight = 22;
