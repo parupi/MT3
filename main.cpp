@@ -3,9 +3,9 @@
 const char kWindowTitle[] = "LC1B_10_カワグチ_ハルキ_MT3";
 
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix) {
-    const float kGridHalfWidth = 2.0f;
-    const uint32_t kSubdivision = 10;
-    const float kGridEvery = (kGridHalfWidth * 2.0f) / float(kSubdivision);
+    const float kGridHalfWidth = 2.0f;                                          // Gridの半分の幅
+    const uint32_t kSubdivision = 10;                                           // 分割数
+    const float kGridEvery = (kGridHalfWidth * 2.0f) / float(kSubdivision);     // 1つ分の長さ
 
     // 奥から手前への線を引いていく
     for (uint32_t xIndex = 0; xIndex <= kSubdivision; ++xIndex) {
@@ -71,7 +71,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     float aspectRatio = kWindowWidth / kWindowHeight; // アスペクト比
     float nearClip = 0.1f; // クリップ面（近い方）
     float farClip = 100.0f; // クリップ面（遠い方）
-   
+    Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(fovY, aspectRatio, nearClip, farClip);
 
     // ビューポート変換行列の作成
     float viewportLeft = 0.0f; // ビューポートの左上隅の X 座標
@@ -80,7 +80,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     float viewportHeight = kWindowHeight; // ビューポートの高さ
     float viewportMinDepth = 0.0f; // クリップ面（近い方）
     float viewportMaxDepth = 1.0f; // クリップ面（遠い方）
-   
+    Matrix4x4 viewportMatrix = MakeViewportMatrix(viewportLeft, viewportTop, viewportWidth, viewportHeight, viewportMinDepth, viewportMaxDepth);
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -95,8 +95,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-        Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(fovY, aspectRatio, nearClip, farClip);
-        Matrix4x4 viewportMatrix = MakeViewportMatrix(viewportLeft, viewportTop, viewportWidth, viewportHeight, viewportMinDepth, viewportMaxDepth);
+  
 
 		///
 		/// ↑更新処理ここまで
