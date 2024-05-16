@@ -1,26 +1,6 @@
-#define NOMINMAX
 #include "function.h"
-#define _USE_MATH_DEFINES
 
 const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
-
-struct Line {
-	Vector3 origin;		//!< 始点
-	Vector3 diff;		//!< 終点への差分ベクトル
-};
-
-struct Ray {
-	Vector3 origin;		//!< 始点
-	Vector3 diff;		//!< 終点への差分ベクトル
-};
-
-struct Segment {
-	Vector3 origin;		//!< 始点
-	Vector3 diff;		//!< 終点への差分ベクトル
-};
-
-Vector3 Project(const Vector3& v1, const Vector3& v2);
-Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -40,7 +20,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 closestPoint = ClosestPoint(point, segment);
 	Sphere pointSphere{ point, 0.01f };
 	Sphere closestPointSphere{ closestPoint, 0.01f };
-
 
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
@@ -107,32 +86,3 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Novice::Finalize();
 	return 0;
 }
-
-Vector3 Project(const Vector3& v1, const Vector3& v2){
-	return Multiply(Dot(v1, Normalize(v2)), Normalize(v2));
-}
-
-Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
-	// セグメントの方向ベクトルの長さの二乗
-	float segLengthSquared = Length(segment.diff) * Length(segment.diff);
-
-	// セグメントが実質的に点である場合
-	if (segLengthSquared == 0.0) {
-		return segment.origin;
-	}
-
-	// point から segment.origin へのベクトル
-	Vector3 diffPointOrigin = point - segment.origin;
-
-	// diffPointOrigin を segment.diff に射影したスカラー t を計算
-	float t = Dot(diffPointOrigin, segment.diff) / segLengthSquared;
-
-	// t を 0 から 1 の範囲にクランプ
-	t = std::max(0.0f, std::min(1.0f, t));
-
-	// 最近接点の計算
-	Vector3 closestPoint = segment.origin + segment.diff * t;
-
-	return closestPoint;
-}
-

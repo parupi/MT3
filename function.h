@@ -44,6 +44,21 @@ struct Sphere {
 	float radius;//半径
 };
 
+struct Line {
+	Vector3 origin;		//!< 始点
+	Vector3 diff;		//!< 終点への差分ベクトル
+};
+
+struct Ray {
+	Vector3 origin;		//!< 始点
+	Vector3 diff;		//!< 終点への差分ベクトル
+};
+
+struct Segment {
+	Vector3 origin;		//!< 始点
+	Vector3 diff;		//!< 終点への差分ベクトル
+};
+
 /// <summary>
 /// 3次元ベクトルを表示するための関数
 /// </summary>
@@ -148,3 +163,6 @@ Vector4 Multiply(const Matrix4x4& mat, const Vector4& vec);
 //グリッドと球の描画
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
+
+Vector3 Project(const Vector3& v1, const Vector3& v2);
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment);

@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "function.h"
 
 void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label)
@@ -462,4 +463,32 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		}
 	}
 
+}
+
+Vector3 Project(const Vector3& v1, const Vector3& v2) {
+	return Multiply(Dot(v1, Normalize(v2)), Normalize(v2));
+}
+
+Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+	// セグメントの方向ベクトルの長さの二乗
+	float segLengthSquared = Length(segment.diff) * Length(segment.diff);
+
+	// セグメントが実質的に点である場合
+	if (segLengthSquared == 0.0) {
+		return segment.origin;
+	}
+
+	// point から segment.origin へのベクトル
+	Vector3 diffPointOrigin = point - segment.origin;
+
+	// diffPointOrigin を segment.diff に射影したスカラー t を計算
+	float t = Dot(diffPointOrigin, segment.diff) / segLengthSquared;
+
+	// t を 0 から 1 の範囲にクランプ
+	t = std::max(0.0f, std::min(1.0f, t));
+
+	// 最近接点の計算
+	Vector3 closestPoint = segment.origin + segment.diff * t;
+
+	return closestPoint;
 }
