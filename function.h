@@ -5,7 +5,9 @@
 #include <cmath>
 #include <imgui.h>
 #include "assert.h"
-
+#include "Vector3.h"
+#include <iostream>
+#define _USE_MATH_DEFINES
 
 static const int kColumnWidth = 60;
 const int kRowHeight = 22;
@@ -16,12 +18,6 @@ const int kWindowHeight = 720;
 struct Vector2 {
 	float x;
 	float y;
-};
-
-struct Vector3 {
-	float x;
-	float y;
-	float z;
 };
 
 struct Vector4 {
@@ -41,6 +37,11 @@ struct Matrix3x3 {
 
 struct Matrix4x4 {
 	float m[4][4];
+};
+
+struct Sphere {
+	Vector3 center;//中心
+	float radius;//半径
 };
 
 /// <summary>
@@ -90,6 +91,8 @@ float Dot(const Vector3& v1, const Vector3& v2);
 /// <param name="v"></param>
 /// <returns></returns>
 float Length(const Vector3& v);
+
+float MagnitudeSquared(const Vector3& v);
 
 /// <summary>
 /// 3次元ベクトルの正規化をする関数
@@ -141,3 +144,7 @@ Vector3 Multiply(const Matrix4x4& mat, const Vector3& vec);
 Vector3 Cross(const Vector3& v1, const Vector3& v2);
 
 Vector4 Multiply(const Matrix4x4& mat, const Vector4& vec);
+
+//グリッドと球の描画
+void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
