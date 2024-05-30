@@ -2,18 +2,25 @@
 
 const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
 
+struct Plane {
+	Vector3 normal;		//!< 法線
+	float distance;		//!< 距離
+};
+
 Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
 Vector3 cameraRotate{ 0.26f, 0.0f, 0.0f };
 Vector3 cameraPosition{ 0.0f, 1.0f, -5.0f };
-Vector2Int clickPosition;
-bool isLeftClicked = false;
-bool isWheelClicked = false;
-float mouseSensitivity = 0.001f;
-float moveSpeed = 0.001f;
-void UpdateCameraRotation();
-void UpdateCameraTranslation();
-void UpdateCameraZoom();
-void UpdateCamera();
+Vector2Int clickPos{};
+
+bool IsCollision(const Sphere& sphere, const Plane& plane);
+Vector3 Perpendicular(const Vector3& vector);
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjection, const Matrix4x4& viewport,  uint32_t color);
+void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition, char* keys, char* preKeys);
+Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, cameraRotate, cameraPosition + cameraTranslate);
+Matrix4x4 viewMatrix = Inverse(cameraMatrix);
+Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
+Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
+Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
 bool IsCollision(const Sphere& s1, const Sphere& s2);
 
@@ -23,9 +30,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// ライブラリの初期化
 	Novice::Initialize(kWindowTitle, 1280, 720);
 
-	Sphere sphere[2]{};
-	sphere[0] = { {0.0f, 0.0f, 0.0f} , 1.0f };
-	sphere[1] = { {1.0f, 0.0f, 1.0f} , 1.0f };
+	Sphere sphere;
+	Plane plane{ {0.0f,1.0f,0.0f}, 1.0f };
+	sphere = { {0.0f, 0.0f, 0.0f} , 1.0f };
 	uint32_t color = 0xFFFFFFFF;
 	bool isHit = false;
 
@@ -46,15 +53,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		///
 
-		Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, cameraRotate, cameraPosition + cameraTranslate);
-		Matrix4x4 viewMatrix = Inverse(cameraMatrix);
-		Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
-		Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
-		Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
+		CameraMove(cameraRotate, cameraPosition, clickPos, keys, preKeys);
 
-		UpdateCamera();
-
-		isHit = IsCollision(sphere[0], sphere[1]) == true;
+		isHit = IsCollision(sphere, plane);
 
 		if (isHit) {
 			color = 0xFF0000FF;
@@ -72,16 +73,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 
 		ImGui::Begin("Window");
-		ImGui::DragFloat3("Sphere[0].Center", &sphere[0].center.x, 0.01f);
-		ImGui::DragFloat3("Sphere[0].Radius", &sphere[0].radius, 0.01f);
-		ImGui::DragFloat3("Sphere[1].Center", &sphere[1].center.x, 0.01f);
-		ImGui::DragFloat3("Sphere[1].Radius", &sphere[1].radius, 0.01f);
+		ImGui::DragFloat3("Sphere.Center", &sphere.center.x, 0.01f);
+		ImGui::DragFloat("Sphere.Radius", &sphere.radius, 0.01f);
+		ImGui::DragFloat3("Plane.Normal", &plane.normal.x, 0.01f);
+		plane.normal = Normalize(plane.normal);
+		ImGui::DragFloat("Plane.Distance", &plane.distance, 0.01f);
 		ImGui::End();
 
 		DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-		DrawSphere(sphere[0], viewProjectionMatrix, viewportMatrix, color);
-		DrawSphere(sphere[1], viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+		DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, color);
+		DrawPlane(plane, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
 		///
 		/// ↑描画処理ここまで
@@ -110,69 +112,135 @@ bool IsCollision(const Sphere& s1, const Sphere& s2) {
 	}
 }
 
-void UpdateCameraRotation() {
-	if (Novice::IsPressMouse(0) == 1) {
-		if (!isLeftClicked) {
-			// マウスがクリックされたときに現在のマウス位置を保存する
-			Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
-			isLeftClicked = true;
-		}
-		else {
-			// マウスがクリックされている間はカメラの回転を更新する
-			Vector2Int currentMousePos;
-			Novice::GetMousePosition(&currentMousePos.x, &currentMousePos.y);
+bool IsCollision(const Sphere& sphere, const Plane& plane)
+{
+	// 球体の中心から平面までの距離を計算
+	float distanceFromCenterToPlane = Dot(plane.normal, sphere.center) - plane.distance;
 
-			float deltaX = static_cast<float>(currentMousePos.x - clickPosition.x);
-			float deltaY = static_cast<float>(currentMousePos.y - clickPosition.y);
-
-			cameraRotate.x += deltaY * mouseSensitivity;
-			cameraRotate.y += deltaX * mouseSensitivity;
-
-			// 現在のマウス位置を保存する
-			clickPosition = currentMousePos;
-		}
+	// この距離の絶対値が球体の半径よりも小さいかどうかを確認
+	if (abs(distanceFromCenterToPlane) <= sphere.radius) {
+		return true; // 当たっている
 	}
 	else {
-		// マウスがクリックされていない場合はフラグをリセットする
-		isLeftClicked = false;
+		return false; // 当たっていない
 	}
 }
 
-void UpdateCameraTranslation() {
-	if (Novice::IsPressMouse(2) == 1) {
-		if (!isWheelClicked) {
-			// マウスがクリックされたときに現在のマウス位置を保存する
-			Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
-			isWheelClicked = true;
+
+Vector3 Perpendicular(const Vector3& vector) {
+	if (vector.x != 0.0f || vector.y != 0.0f) {
+		return{ -vector.y, vector.x, 0.0f };
+	}
+	return{ 0.0f, -vector.z, vector.y };
+}
+
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjection, const Matrix4x4& viewport,  uint32_t color) {
+	Vector3 center = Multiply(plane.distance, plane.normal);	// 1
+	Vector3 perpendiculars[4];
+	perpendiculars[0] = Normalize(Perpendicular(plane.normal));		// 2
+	perpendiculars[1] = { -perpendiculars[0].x, -perpendiculars[0].y, -perpendiculars[0].z };		// 3
+	perpendiculars[2] = Cross(plane.normal, perpendiculars[0]);		// 4
+	perpendiculars[3] = { -perpendiculars[2].x,  -perpendiculars[2].y, -perpendiculars[2].z };		// 5
+	// 6
+	Vector3 points[4];
+	for (int32_t index = 0; index < 4; ++index) {
+		Vector3 extend = Multiply(2.0f, perpendiculars[index]);
+		Vector3 point = Add(center, extend);
+		points[index] = Transform(Transform(point, viewProjection), viewport);
+	}
+	Novice::DrawLine(int(points[0].x), int(points[0].y), int(points[2].x), int(points[2].y), color);
+	Novice::DrawLine(int(points[1].x), int(points[1].y), int(points[3].x), int(points[3].y), color);
+	Novice::DrawLine(int(points[2].x), int(points[2].y), int(points[1].x), int(points[1].y), color);
+	Novice::DrawLine(int(points[3].x), int(points[3].y), int(points[0].x), int(points[0].y), color);
+}
+
+void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition, char* keys, char* preKeys) {
+	// カーソルを動かすときの感度
+	const float mouseSensitivity = 0.003f;
+	// カメラの移動速度
+	const float moveSpeed = 0.005f;
+
+	// 各フラグ
+	static bool isLeftClicked = false;
+	static bool isWheelClicked = false;
+	static bool isDebugCamera = false;
+
+	// 回転を考慮する
+	Matrix4x4 rotationMatrix = MakeRotateXYZMatrix(cameraRotation);
+	Vector3 X = { 1.0f, 0.0f, 0.0f };
+	Vector3 Y = { 0.0f, 1.0f, 0.0f };
+	Vector3 Z = { 0.0f, 0.0f, -1.0f };
+
+	Vector3 rotatedX = Transform(X, rotationMatrix);
+	Vector3 rotatedY = Transform(Y, rotationMatrix);
+	Vector3 rotatedZ = Transform(Z, rotationMatrix);
+
+	if (keys[DIK_SPACE] && preKeys[DIK_SPACE] == 0) {
+		isDebugCamera = !isDebugCamera;
+	}
+
+	if (isDebugCamera) {
+
+		/// ========カメラ操作========
+		// カメラの回転を更新する
+		if (Novice::IsPressMouse(0) == 1) {
+			if (!isLeftClicked) {
+				// マウスがクリックされたときに現在のマウス位置を保存する
+				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
+				isLeftClicked = true;
+			}
+			else {
+				// マウスがクリックされている間はカメラの回転を更新する
+				Vector2Int currentMousePos;
+				Novice::GetMousePosition(&currentMousePos.x, &currentMousePos.y);
+
+				float deltaX = static_cast<float>(currentMousePos.x - clickPosition.x);
+				float deltaY = static_cast<float>(currentMousePos.y - clickPosition.y);
+
+				cameraRotation.x += deltaY * mouseSensitivity;
+				cameraRotation.y += deltaX * mouseSensitivity;
+
+				// 現在のマウス位置を保存する
+				clickPosition = currentMousePos;
+			}
 		}
 		else {
-			// マウスがクリックされている間はカメラの位置を更新する
-			Vector2Int currentMousePos;
-			Novice::GetMousePosition(&currentMousePos.x, &currentMousePos.y);
-
-			float deltaX = static_cast<float>(currentMousePos.x - clickPosition.x);
-			float deltaY = static_cast<float>(currentMousePos.y - clickPosition.y);
-
-			cameraTranslate.x -= deltaX * mouseSensitivity;
-			cameraTranslate.y += deltaY * mouseSensitivity;
-
-			// 現在のマウス位置を保存する
-			clickPosition = currentMousePos;
+			// マウスがクリックされていない場合はフラグをリセットする
+			isLeftClicked = false;
 		}
-	}
-	else {
-		// マウスがクリックされていない場合はフラグをリセットする
-		isWheelClicked = false;
-	}
-}
 
-void UpdateCameraZoom() {
-	int wheelDelta = Novice::GetWheel();
-	cameraTranslate.z += wheelDelta * moveSpeed;
-}
+		// カメラの位置を更新する
+		if (Novice::IsPressMouse(2) == 1) {
+			if (!isWheelClicked) {
+				// マウスがクリックされたときに現在のマウス位置を保存する
+				Novice::GetMousePosition(&clickPosition.x, &clickPosition.y);
+				isWheelClicked = true;
+			}
+			else {
+				// マウスがクリックされている間はカメラの位置を更新する
+				Vector2Int currentMousePos;
+				Novice::GetMousePosition(&currentMousePos.x, &currentMousePos.y);
 
-void UpdateCamera() {
-	UpdateCameraRotation();
-	UpdateCameraTranslation();
-	UpdateCameraZoom();
+				float deltaX = static_cast<float>(currentMousePos.x - clickPosition.x);
+				float deltaY = static_cast<float>(currentMousePos.y - clickPosition.y);
+
+				cameraTranslation = Subtract(cameraTranslation, rotatedX * deltaX * mouseSensitivity);
+				cameraTranslation += rotatedY * deltaY * mouseSensitivity;
+
+				// 現在のマウス位置を保存する
+				clickPosition = currentMousePos;
+			}
+		}
+		else {
+			// マウスがクリックされていない場合はフラグをリセットする
+			isWheelClicked = false;
+		}
+
+		// マウスホイールの移動量を取得する
+		int wheelDelta = -Novice::GetWheel();
+
+		// マウスホイールの移動量に応じてカメラの移動を更新する
+		cameraTranslation += rotatedZ * float(wheelDelta) * moveSpeed;
+		/// =====================
+	}
 }

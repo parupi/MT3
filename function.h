@@ -147,6 +147,8 @@ Matrix4x4 MakeRotateYMatrix(float radian);
 
 Matrix4x4 MakeRotateZMatrix(float radian);
 
+Matrix4x4 MakeRotateXYZMatrix(Vector3& radian);
+
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate);
 
 // 1. 透視投影行列
