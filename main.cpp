@@ -95,16 +95,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 bool IsCollision(const Segment& segment, const Plane& plane)
 {
-	// 始点と終点の平面からの距離を計算
-	float distanceStart = Dot(plane.normal, segment.origin) - plane.distance;
-	float distanceEnd = Dot(plane.normal, segment.origin + segment.diff) - plane.distance;
+	float dot = Dot(plane.normal, segment.diff);
+	// 平面と線分が平行の場合、交差しない
+	if (dot == 0.0f) {
+		return false;
+	}
 
-	// 距離の符号が異なる場合、線は平面と交差している
-	if ((distanceStart * distanceEnd) <= 0.0f) {
-		return true; // 当たっている
+	// tの値を計算
+	float t = (plane.distance - Dot(segment.origin, plane.normal)) / dot;
+
+	// tが0から1の間にある場合、線分は平面と交差する
+	if (t >= 0.0f && t <= 1.0f) {
+		return true;
 	}
 	else {
-		return false; // 当たっていない
+		return false;
 	}
 }
 
