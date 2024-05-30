@@ -64,6 +64,11 @@ struct Segment {
 	Vector3 diff;		//!< 終点への差分ベクトル
 };
 
+struct Plane {
+	Vector3 normal;		//!< 法線
+	float distance;		//!< 距離
+};
+
 /// <summary>
 /// 3次元ベクトルを表示するための関数
 /// </summary>
@@ -172,6 +177,15 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix);
 
 Vector3 Project(const Vector3& v1, const Vector3& v2);
+
 Vector3 ClosestPoint(const Vector3& point, const Segment& segment);
 
+bool IsCollision(const Sphere& s1, const Sphere& s2);
+
+bool IsCollision(const Sphere& sphere, const Plane& plane);
+
+Vector3 Perpendicular(const Vector3& vector);
+
+void DrawPlane(const Plane& plane, const Matrix4x4& viewProjection, const Matrix4x4& viewport, uint32_t color);
 // デバッグカメラの関数化
+void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition/*, char* keys, char* preKeys*/);
