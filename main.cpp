@@ -90,10 +90,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         CameraMove(cameraRotate, cameraPosition, clickPos, keys, preKeys);
         
         ImGui::Begin("Window");
-        ImGui::DragFloat3("aabb1.min", &aabb1.min.x, 0.1f);
-        ImGui::DragFloat3("aabb1.max", &aabb1.max.x, 0.1f);
-        ImGui::DragFloat3("aabb2.min", &aabb2.min.x, 0.1f);
-        ImGui::DragFloat3("aabb2.max", &aabb2.max.x, 0.1f);
+        ImGui::DragFloat3("aabb1.min", &aabb1.min.x, 0.01f);
+        ImGui::DragFloat3("aabb1.max", &aabb1.max.x, 0.01f);
+        ImGui::DragFloat3("aabb2.min", &aabb2.min.x, 0.01f);
+        ImGui::DragFloat3("aabb2.max", &aabb2.max.x, 0.01f);
         ImGui::End();
 
         DrawGrid(viewProjectionMatrix, viewportMatrix);
