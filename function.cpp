@@ -622,3 +622,61 @@ void DrawLine(const Segment& segment, const Matrix4x4& viewProjection, const Mat
 	Novice::DrawLine(x1, y1, x2, y2, color);
 }
 
+bool IsCollision(const Triangle& triangle, const Segment& segment)
+{
+	// 三角形の頂点から法線ベクトルを計算
+	Vector3 edge1 = triangle.vertices[1] - triangle.vertices[0];
+	Vector3 edge2 = triangle.vertices[2] - triangle.vertices[0];
+	Vector3 normal = Cross(edge1, edge2);
+	normal = Normalize(normal);
+
+	// 平面の方程式を定義
+	Plane plane{ normal, Dot(normal, triangle.vertices[0]) };
+
+	// 線分と平面の交差判定
+	float dot = Dot(plane.normal, segment.diff);
+
+	// 平面と線分が平行な場合、交差しない
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	// 線分の始点から終点へのベクトルの割合 t を計算
+	float t = (plane.distance - Dot(segment.origin, plane.normal)) / dot;
+
+	// tが0から1の間にある場合、交点が線分上にある
+	if (t >= 0.0f && t <= 1.0f) {
+		// 交点の座標を計算
+		Vector3 intersection = segment.origin + segment.diff * t;
+
+		// 交点が三角形内にあるかを判定
+		for (int i = 0; i < 3; ++i) {
+			Vector3 edge = triangle.vertices[(i + 1) % 3] - triangle.vertices[i];
+			Vector3 vp = intersection - triangle.vertices[i];
+			Vector3 crossProduct = Cross(edge, vp);
+			if (Dot(normal, crossProduct) < 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+
+void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+	Vector3 transformedVertices[3];
+	for (int i = 0; i < 3; ++i) {
+		transformedVertices[i] = Transform(Transform(triangle.vertices[i], viewProjectionMatrix), viewportMatrix);
+	}
+
+	for (int i = 0; i < 3; ++i) {
+		int x1 = static_cast<int>(transformedVertices[i].x);
+		int y1 = static_cast<int>(transformedVertices[i].y);
+		int x2 = static_cast<int>(transformedVertices[(i + 1) % 3].x);
+		int y2 = static_cast<int>(transformedVertices[(i + 1) % 3].y);
+
+		Novice::DrawLine(x1, y1, x2, y2, color);
+	}
+}

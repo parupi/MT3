@@ -2,12 +2,13 @@
 
 const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
 
-struct Triangle {
-	Vector3 vertices[3];
+struct AABB {
+    Vector3 min;    //!< 最小点
+    Vector3 max;    //!< 最大点
 };
 
-bool IsCollision(const Triangle& triangle, const Segment& segment);
-void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+bool IsCollision(const AABB& aabb1, const AABB& aabb2);
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -24,9 +25,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     Vector3 cameraPosition{ 0.0f, 1.0f, -5.0f };
     Vector2Int clickPos{};
 
-    Plane plane{ {0.0f,1.0f,0.0f}, 1.0f };
-    Segment line{ {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 1.0f} };
-    Triangle triangle{ { {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f} } };
+    AABB aabb1{
+        .min{-0.5f, -0.5f, -0.5f},
+        .max{0.0f, 0.0f, 0.0f},
+    };
+
+    AABB aabb2{
+       .min{0.2f, 0.2f, 0.2f},
+       .max{1.0f, 1.0f, 1.0f},
+    };
+
     uint32_t color = 0xFFFFFFFF;
     bool isHit = false;
 
@@ -49,7 +57,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
         Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
-        isHit = IsCollision(triangle, line);
+        aabb1.min.x = (std::min)(aabb1.min.x, aabb1.max.x);
+        aabb1.max.x = (std::max)(aabb1.min.x, aabb1.max.x);
+        aabb1.min.y = (std::min)(aabb1.min.y, aabb1.max.y);
+        aabb1.max.y = (std::max)(aabb1.min.y, aabb1.max.y);
+        aabb1.min.z = (std::min)(aabb1.min.z, aabb1.max.z);
+        aabb1.max.z = (std::max)(aabb1.min.z, aabb1.max.z);
+        aabb2.min.x = (std::min)(aabb2.min.x, aabb2.max.x);
+        aabb2.max.x = (std::max)(aabb2.min.x, aabb2.max.x);
+        aabb2.min.y = (std::min)(aabb2.min.y, aabb2.max.y);
+        aabb2.max.y = (std::max)(aabb2.min.y, aabb2.max.y);
+        aabb2.min.z = (std::min)(aabb2.min.z, aabb2.max.z);
+        aabb2.max.z = (std::max)(aabb2.min.z, aabb2.max.z);
+
+        isHit = IsCollision(aabb1, aabb2);
 
         if (isHit) {
             color = 0xFF0000FF;
@@ -67,18 +88,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         ///
 
         CameraMove(cameraRotate, cameraPosition, clickPos, keys, preKeys);
-
+        
         ImGui::Begin("Window");
-        ImGui::DragFloat3("Triangle.Vertex0", &triangle.vertices[0].x, 0.01f);
-        ImGui::DragFloat3("Triangle.Vertex1", &triangle.vertices[1].x, 0.01f);
-        ImGui::DragFloat3("Triangle.Vertex2", &triangle.vertices[2].x, 0.01f);
-        ImGui::DragFloat3("Segment.Start", &line.origin.x, 0.01f);
-        ImGui::DragFloat3("Segment.Diff", &line.diff.x, 0.01f);
+        ImGui::DragFloat3("aabb1.min", &aabb1.min.x, 0.1f);
+        ImGui::DragFloat3("aabb1.max", &aabb1.max.x, 0.1f);
+        ImGui::DragFloat3("aabb2.min", &aabb2.min.x, 0.1f);
+        ImGui::DragFloat3("aabb2.max", &aabb2.max.x, 0.1f);
         ImGui::End();
 
         DrawGrid(viewProjectionMatrix, viewportMatrix);
-        DrawLine(line, viewProjectionMatrix, viewportMatrix, color);
-        DrawTriangle(triangle, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        DrawAABB(aabb1, viewProjectionMatrix, viewportMatrix, color);
+        DrawAABB(aabb2, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
         ///
         /// ↑描画処理ここまで
@@ -98,62 +118,51 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 
-bool IsCollision(const Triangle& triangle, const Segment& segment)
+bool IsCollision(const AABB& a, const AABB& b)
 {
-    // 三角形の頂点から法線ベクトルを計算
-    Vector3 edge1 = triangle.vertices[1] - triangle.vertices[0];
-    Vector3 edge2 = triangle.vertices[2] - triangle.vertices[0];
-    Vector3 normal = Cross(edge1, edge2);
-    normal = Normalize(normal);
-
-    // 平面の方程式を定義
-    Plane plane{ normal, Dot(normal, triangle.vertices[0]) };
-
-    // 線分と平面の交差判定
-    float dot = Dot(plane.normal, segment.diff);
-
-    // 平面と線分が平行な場合、交差しない
-    if (dot == 0.0f) {
-        return false;
-    }
-
-    // 線分の始点から終点へのベクトルの割合 t を計算
-    float t = (plane.distance - Dot(segment.origin, plane.normal)) / dot;
-
-    // tが0から1の間にある場合、交点が線分上にある
-    if (t >= 0.0f && t <= 1.0f) {
-        // 交点の座標を計算
-        Vector3 intersection = segment.origin + segment.diff * t;
-
-        // 交点が三角形内にあるかを判定
-        for (int i = 0; i < 3; ++i) {
-            Vector3 edge = triangle.vertices[(i + 1) % 3] - triangle.vertices[i];
-            Vector3 vp = intersection - triangle.vertices[i];
-            Vector3 crossProduct = Cross(edge, vp);
-            if (Dot(normal, crossProduct) < 0) {
-                return false;
-            }
-        }
+    if ((a.min.x <= b.max.x && a.max.x >= b.min.x) &&
+        (a.min.y <= b.max.y && a.max.y >= b.min.y) &&
+        (a.min.z <= b.max.z && a.max.z >= b.min.z)) {
         return true;
     }
-    return false;
+    else {
+        return false;
+    }
 }
 
+// AABBを描画する関数
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+    // AABBの8つの頂点を計算
+    Vector3 vertices[8] = {
+        {aabb.min.x, aabb.min.y, aabb.min.z},
+        {aabb.max.x, aabb.min.y, aabb.min.z},
+        {aabb.min.x, aabb.max.y, aabb.min.z},
+        {aabb.max.x, aabb.max.y, aabb.min.z},
+        {aabb.min.x, aabb.min.y, aabb.max.z},
+        {aabb.max.x, aabb.min.y, aabb.max.z},
+        {aabb.min.x, aabb.max.y, aabb.max.z},
+        {aabb.max.x, aabb.max.y, aabb.max.z}
+    };
 
-void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
-{
-	Vector3 transformedVertices[3];
-	for (int i = 0; i < 3; ++i) {
-		transformedVertices[i] = Transform(Transform(triangle.vertices[i], viewProjectionMatrix), viewportMatrix);
-	}
+    // 各頂点を変換
+    Vector3 transformedVertices[8];
+    for (int i = 0; i < 8; ++i) {
+        transformedVertices[i] = Transform(Transform(vertices[i], viewProjectionMatrix), viewportMatrix);
+    }
 
-	for (int i = 0; i < 3; ++i) {
-		int x1 = static_cast<int>(transformedVertices[i].x);
-		int y1 = static_cast<int>(transformedVertices[i].y);
-		int x2 = static_cast<int>(transformedVertices[(i + 1) % 3].x);
-		int y2 = static_cast<int>(transformedVertices[(i + 1) % 3].y);
+    // AABBのエッジを描画
+    const int edges[12][2] = {
+        {0, 1}, {1, 3}, {3, 2}, {2, 0}, // 前面
+        {4, 5}, {5, 7}, {7, 6}, {6, 4}, // 背面
+        {0, 4}, {1, 5}, {2, 6}, {3, 7}  // 前面と背面を結ぶエッジ
+    };
 
-		Novice::DrawLine(x1, y1, x2, y2, color);
-	}
+    for (int i = 0; i < 12; ++i) {
+        int x1 = static_cast<int>(transformedVertices[edges[i][0]].x);
+        int y1 = static_cast<int>(transformedVertices[edges[i][0]].y);
+        int x2 = static_cast<int>(transformedVertices[edges[i][1]].x);
+        int y2 = static_cast<int>(transformedVertices[edges[i][1]].y);
+
+        Novice::DrawLine(x1, y1, x2, y2, color);
+    }
 }
-

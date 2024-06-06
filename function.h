@@ -69,6 +69,11 @@ struct Plane {
 	float distance;		//!< 距離
 };
 
+struct Triangle {
+	Vector3 vertices[3];
+};
+
+
 /// <summary>
 /// 3次元ベクトルを表示するための関数
 /// </summary>
@@ -193,3 +198,5 @@ void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int&
 bool IsCollision(const Segment& segment, const Plane& plane);
 void DrawLine(const Segment& segment, const Matrix4x4& viewProjection, const Matrix4x4& viewport, uint32_t color);
 
+bool IsCollision(const Triangle& triangle, const Segment& segment);
+void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
