@@ -286,64 +286,6 @@ Vector4 Multiply(const Matrix4x4& mat, const Vector4& vec) {
 	return result;
 }
 
-//void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-//	float pi = float(3.14);
-//	const uint32_t kSubdivision = 10;
-//	const float kLatEvery = pi / kSubdivision;
-//	const float kLonEvery = (2 * pi) / kSubdivision;
-//
-//	Vector3 a, b, c;
-//
-//	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
-//		sphere;
-//		float lat = -pi / 2.0f + kLatEvery * latIndex;
-//
-//		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
-//			float lon = lonIndex * kLonEvery;
-//			//ワールド座標系での頂点を求める
-//			a = {
-//				(sphere.center.x + sphere.radius) * (std::cos(lat) * std::cos(lon)),
-//				(sphere.center.y + sphere.radius) * (std::sin(lat)),
-//				(sphere.center.z + sphere.radius) * (std::cos(lat) * std::sin(lon))
-//			};
-//
-//			b = {
-//				(sphere.center.x + sphere.radius) * (std::cos(lat + (pi / kSubdivision)) * std::cos(lon)),
-//				(sphere.center.y + sphere.radius) * (std::sin(lat + (pi / kSubdivision))),
-//				(sphere.center.z + sphere.radius) * (std::cos(lat + (pi / kSubdivision)) * std::sin(lon))
-//			};
-//
-//			c = {
-//				(sphere.center.x + sphere.radius) * (std::cos(lat) * std::cos(lon + ((pi * 2) / kSubdivision))),
-//				(sphere.center.y + sphere.radius) * (std::sin(lat)),
-//				(sphere.center.z + sphere.radius) * (std::cos(lat) * std::sin(lon + ((pi * 2) / kSubdivision)))
-//			};
-//
-//			//a,b,cをScreen座標系まで変換
-//			Matrix4x4 worldMatrixA = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, a);
-//			Matrix4x4 worldMatrixB = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, b);
-//			Matrix4x4 worldMatrixC = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, c);
-//
-//			Matrix4x4 wvpMatrixA = Multiply(worldMatrixA, viewProjectionMatrix);
-//			Matrix4x4 wvpMatrixB = Multiply(worldMatrixB, viewProjectionMatrix);
-//			Matrix4x4 wvpMatrixC = Multiply(worldMatrixC, viewProjectionMatrix);
-//
-//			Vector3 localA = Transform(a, wvpMatrixA);
-//			Vector3 localB = Transform(b, wvpMatrixB);
-//			Vector3 localC = Transform(c, wvpMatrixC);
-//
-//			Vector3 screenA = Transform(localA, viewportMatrix);
-//			Vector3 screenB = Transform(localB, viewportMatrix);
-//			Vector3 screenC = Transform(localC, viewportMatrix);
-//
-//			//ab,bcで線を引く
-//			Novice::DrawLine((int)screenA.x, (int)screenA.y, (int)screenB.x, (int)screenB.y, color);
-//			Novice::DrawLine((int)screenA.x, (int)screenA.y, (int)screenC.x, (int)screenC.y, color);
-//
-//		}
-//	}
-//}
-
 void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
 	float pi = float(3.14); // Use standard M_PI constant for better precision
 	const uint32_t kSubdivision = 10;
@@ -549,7 +491,7 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjection, const Matrix
 	Novice::DrawLine(int(points[3].x), int(points[3].y), int(points[0].x), int(points[0].y), color);
 }
 
-void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition/*, char* keys, char* preKeys*/) {
+void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition, char* keys, char* preKeys) {
 	// カーソルを動かすときの感度
 	const float mouseSensitivity = 0.003f;
 	// カメラの移動速度
@@ -570,9 +512,9 @@ void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int&
 	Vector3 rotatedY = Transform(Y, rotationMatrix);
 	Vector3 rotatedZ = Transform(Z, rotationMatrix);
 
-	/*if (keys[DIK_SPACE] && preKeys[DIK_SPACE] == 0) {
+	if (keys[DIK_SPACE] && preKeys[DIK_SPACE] == 0) {
 		isDebugCamera = !isDebugCamera;
-	}*/
+	}
 
 	if (isDebugCamera) {
 
@@ -637,5 +579,46 @@ void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int&
 		// マウスホイールの移動量に応じてカメラの移動を更新する
 		cameraTranslation += rotatedZ * float(wheelDelta) * moveSpeed;
 		/// =====================
+		
+	}
+	ImGui::Begin("DebugCamera");
+	ImGui::Text("flag %d", isDebugCamera);
+	ImGui::End();
+}
+
+bool IsCollision(const Segment& segment, const Plane& plane)
+{
+	float dot = Dot(plane.normal, segment.diff);
+	// 平面と線分が平行の場合、交差しない
+	if (dot == 0.0f) {
+		return false;
+	}
+
+	// tの値を計算
+	float t = (plane.distance - Dot(segment.origin, plane.normal)) / dot;
+
+	// tが0から1の間にある場合、線分は平面と交差する
+	if (t >= 0.0f && t <= 1.0f) {
+		return true;
+	}
+	else {
+		return false;
 	}
 }
+
+
+void DrawLine(const Segment& segment, const Matrix4x4& viewProjection, const Matrix4x4& viewport, uint32_t color) {
+	// 始点と終点を変換
+	Vector3 transformedStart = Transform(Transform(segment.origin, viewProjection), viewport);
+	Vector3 transformedEnd = Transform(Transform(segment.diff, viewProjection), viewport);
+
+	// スクリーン座標に変換
+	int x1 = static_cast<int>(transformedStart.x);
+	int y1 = static_cast<int>(transformedStart.y);
+	int x2 = static_cast<int>(transformedEnd.x);
+	int y2 = static_cast<int>(transformedEnd.y);
+
+	// 線を描画
+	Novice::DrawLine(x1, y1, x2, y2, color);
+}
+

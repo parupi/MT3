@@ -188,4 +188,8 @@ Vector3 Perpendicular(const Vector3& vector);
 
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjection, const Matrix4x4& viewport, uint32_t color);
 // デバッグカメラの関数化
-void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition/*, char* keys, char* preKeys*/);
+void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition, char* keys, char* preKeys);
+
+bool IsCollision(const Segment& segment, const Plane& plane);
+void DrawLine(const Segment& segment, const Matrix4x4& viewProjection, const Matrix4x4& viewport, uint32_t color);
+

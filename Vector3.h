@@ -17,8 +17,14 @@ public:
 	Vector3 operator*(const Vector3& obj) const;
 	// 乗算(スカラー倍)
 	Vector3 operator*(const float& scalar) const;
+	// 除算
+	Vector3 operator/(const Vector3& obj) const;
 	// +=
 	Vector3& operator+=(const Vector3& obj);
-
-	Vector3 operator/(const Vector3& obj) const;
+	// -=
+	Vector3& operator-=(const Vector3& obj);
+	// *=
+	Vector3& operator*=(const Vector3& obj);
+	// /=
+	Vector3& operator/=(const Vector3& obj);
 };
