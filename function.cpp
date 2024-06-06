@@ -581,9 +581,9 @@ void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int&
 		/// =====================
 		
 	}
-	ImGui::Begin("DebugCamera");
-	ImGui::Text("flag %d", isDebugCamera);
-	ImGui::End();
+	//ImGui::Begin("DebugCamera");
+	//ImGui::Text("flag %d", isDebugCamera);
+	//ImGui::End();
 }
 
 bool IsCollision(const Segment& segment, const Plane& plane)
