@@ -680,3 +680,52 @@ void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatri
 		Novice::DrawLine(x1, y1, x2, y2, color);
 	}
 }
+
+bool IsCollision(const AABB& a, const AABB& b)
+{
+	if ((a.min.x <= b.max.x && a.max.x >= b.min.x) &&
+		(a.min.y <= b.max.y && a.max.y >= b.min.y) &&
+		(a.min.z <= b.max.z && a.max.z >= b.min.z)) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+// AABBを描画する関数
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	// AABBの8つの頂点を計算
+	Vector3 vertices[8] = {
+		{aabb.min.x, aabb.min.y, aabb.min.z},
+		{aabb.max.x, aabb.min.y, aabb.min.z},
+		{aabb.min.x, aabb.max.y, aabb.min.z},
+		{aabb.max.x, aabb.max.y, aabb.min.z},
+		{aabb.min.x, aabb.min.y, aabb.max.z},
+		{aabb.max.x, aabb.min.y, aabb.max.z},
+		{aabb.min.x, aabb.max.y, aabb.max.z},
+		{aabb.max.x, aabb.max.y, aabb.max.z}
+	};
+
+	// 各頂点を変換
+	Vector3 transformedVertices[8];
+	for (int i = 0; i < 8; ++i) {
+		transformedVertices[i] = Transform(Transform(vertices[i], viewProjectionMatrix), viewportMatrix);
+	}
+
+	// AABBのエッジを描画
+	const int edges[12][2] = {
+		{0, 1}, {1, 3}, {3, 2}, {2, 0}, // 前面
+		{4, 5}, {5, 7}, {7, 6}, {6, 4}, // 背面
+		{0, 4}, {1, 5}, {2, 6}, {3, 7}  // 前面と背面を結ぶエッジ
+	};
+
+	for (int i = 0; i < 12; ++i) {
+		int x1 = static_cast<int>(transformedVertices[edges[i][0]].x);
+		int y1 = static_cast<int>(transformedVertices[edges[i][0]].y);
+		int x2 = static_cast<int>(transformedVertices[edges[i][1]].x);
+		int y2 = static_cast<int>(transformedVertices[edges[i][1]].y);
+
+		Novice::DrawLine(x1, y1, x2, y2, color);
+	}
+}

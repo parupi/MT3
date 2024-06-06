@@ -7,6 +7,7 @@
 #include "assert.h"
 #include "Vector3.h"
 #include <iostream>
+#include <algorithm>
 #define _USE_MATH_DEFINES
 
 static const int kColumnWidth = 60;
@@ -71,6 +72,12 @@ struct Plane {
 
 struct Triangle {
 	Vector3 vertices[3];
+};
+
+
+struct AABB {
+	Vector3 min;    //!< 最小点
+	Vector3 max;    //!< 最大点
 };
 
 
@@ -200,3 +207,6 @@ void DrawLine(const Segment& segment, const Matrix4x4& viewProjection, const Mat
 
 bool IsCollision(const Triangle& triangle, const Segment& segment);
 void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+bool IsCollision(const AABB& aabb1, const AABB& aabb2);
+void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
