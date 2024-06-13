@@ -729,3 +729,22 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 		Novice::DrawLine(x1, y1, x2, y2, color);
 	}
 }
+
+// 球とAABBの当たり判定を行う関数
+bool IsCollision(const AABB& aabb, const Sphere& sphere) {
+	// 最近接点を計算
+	float closestX = std::max(aabb.min.x, std::min(sphere.center.x, aabb.max.x));
+	float closestY = std::max(aabb.min.y, std::min(sphere.center.y, aabb.max.y));
+	float closestZ = std::max(aabb.min.z, std::min(sphere.center.z, aabb.max.z));
+
+	// 最近接点と球の中心との距離を計算
+	float distanceX = sphere.center.x - closestX;
+	float distanceY = sphere.center.y - closestY;
+	float distanceZ = sphere.center.z - closestZ;
+
+	// 距離の二乗を計算
+	float distanceSquared = (distanceX * distanceX) + (distanceY * distanceY) + (distanceZ * distanceZ);
+
+	// 距離の二乗が半径の二乗以下であれば衝突している
+	return distanceSquared < (sphere.radius * sphere.radius);
+}

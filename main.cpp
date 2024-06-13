@@ -3,7 +3,7 @@
 
 const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
 
-bool IsCollision(const AABB& aabb, const Sphere& sphere);
+bool IsCollision(const AABB& aabb, const Segment& segmet);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -22,11 +22,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     AABB aabb{
         .min{-0.5f, -0.5f, -0.5f},
-        .max{0.0f, 0.0f, 0.0f},
+        .max{0.5f, 0.5f, 0.5f},
     };
 
-    Sphere sphere{
-        {0.0f, 0.0f, 0.0f}, 1.0f
+    Segment segment{
+        .origin{-0.7f, -0.3f, 0.0f},
+        .diff{2.0f, -0.5f, 0.0f}
     };
 
     uint32_t color = 0xFFFFFFFF;
@@ -58,7 +59,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         aabb.min.z = (std::min)(aabb.min.z, aabb.max.z);
         aabb.max.z = (std::max)(aabb.min.z, aabb.max.z);
 
-        isHit = IsCollision(aabb, sphere);
+        isHit = IsCollision(aabb, segment);
 
         if (isHit) {
             color = 0xFF0000FF;
@@ -80,13 +81,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         ImGui::Begin("Window");
         ImGui::DragFloat3("aabb1.min", &aabb.min.x, 0.01f);
         ImGui::DragFloat3("aabb1.max", &aabb.max.x, 0.01f);
-        ImGui::DragFloat3("sphere.center", &sphere.center.x, 0.01f);
-        ImGui::DragFloat("sphere.radius", &sphere.radius, 0.01f);
+        ImGui::DragFloat3("sphere.center", &segment.origin.x, 0.01f);
+        ImGui::DragFloat3("sphere.radius", &segment.diff.x, 0.01f);
         ImGui::End();
 
         DrawGrid(viewProjectionMatrix, viewportMatrix);
         DrawAABB(aabb, viewProjectionMatrix, viewportMatrix, color);
-        DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        DrawLine(segment, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
         ///
         /// ↑描画処理ここまで
@@ -106,21 +107,62 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 
-// 球とAABBの当たり判定を行う関数
-bool IsCollision(const AABB& aabb, const Sphere& sphere) {
-    // 最近接点を計算
-    float closestX = std::max(aabb.min.x, std::min(sphere.center.x, aabb.max.x));
-    float closestY = std::max(aabb.min.y, std::min(sphere.center.y, aabb.max.y));
-    float closestZ = std::max(aabb.min.z, std::min(sphere.center.z, aabb.max.z));
+bool IsCollision(const AABB& aabb, const Segment& segment) {
+    // 線分の始点と終点を計算
+    Vector3 p0 = segment.origin;
+    Vector3 p1 = segment.origin + segment.diff;
 
-    // 最近接点と球の中心との距離を計算
-    float distanceX = sphere.center.x - closestX;
-    float distanceY = sphere.center.y - closestY;
-    float distanceZ = sphere.center.z - closestZ;
+    // 線分の各成分に対するt値の最小と最大を求める
+    float tmin = 0.0f;
+    float tmax = 1.0f;
 
-    // 距離の二乗を計算
-    float distanceSquared = (distanceX * distanceX) + (distanceY * distanceY) + (distanceZ * distanceZ);
+    // x軸についてチェック
+    if (std::abs(p1.x - p0.x) < 1e-8) {
+        if (p0.x < aabb.min.x || p0.x > aabb.max.x) {
+            return false;
+        }
+    }
+    else {
+        float invD = 1.0f / (p1.x - p0.x);
+        float t1 = (aabb.min.x - p0.x) * invD;
+        float t2 = (aabb.max.x - p0.x) * invD;
+        if (t1 > t2) { std::swap(t1, t2); }
+        tmin = std::max(tmin, t1);
+        tmax = std::min(tmax, t2);
+        if (tmin > tmax) { return false; }
+    }
 
-    // 距離の二乗が半径の二乗以下であれば衝突している
-    return distanceSquared < (sphere.radius * sphere.radius);
+    // y軸についてチェック
+    if (std::abs(p1.y - p0.y) < 1e-8) {
+        if (p0.y < aabb.min.y || p0.y > aabb.max.y) {
+            return false;
+        }
+    }
+    else {
+        float invD = 1.0f / (p1.y - p0.y);
+        float t1 = (aabb.min.y - p0.y) * invD;
+        float t2 = (aabb.max.y - p0.y) * invD;
+        if (t1 > t2) { std::swap(t1, t2); };
+        tmin = std::max(tmin, t1);
+        tmax = std::min(tmax, t2);
+        if (tmin > tmax) { return false; }
+    }
+
+    // z軸についてチェック
+    if (std::abs(p1.z - p0.z) < 1e-8) {
+        if (p0.z < aabb.min.z || p0.z > aabb.max.z) {
+            return false;
+        }
+    }
+    else {
+        float invD = 1.0f / (p1.z - p0.z);
+        float t1 = (aabb.min.z - p0.z) * invD;
+        float t2 = (aabb.max.z - p0.z) * invD;
+        if (t1 > t2) { std::swap(t1, t2); };
+        tmin = std::max(tmin, t1);
+        tmax = std::min(tmax, t2);
+        if (tmin > tmax) { return false; }
+    }
+
+    return true;
 }
