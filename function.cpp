@@ -748,3 +748,63 @@ bool IsCollision(const AABB& aabb, const Sphere& sphere) {
 	// 距離の二乗が半径の二乗以下であれば衝突している
 	return distanceSquared < (sphere.radius * sphere.radius);
 }
+
+bool IsCollision(const AABB& aabb, const Segment& segment) {
+	// 線分の始点と終点を計算
+	Vector3 p0 = segment.origin;
+	Vector3 p1 = segment.origin + segment.diff;
+
+	// 線分の各成分に対するt値の最小と最大を求める
+	float tmin = 0.0f;
+	float tmax = 1.0f;
+
+	// x軸についてチェック
+	if (std::abs(p1.x - p0.x) < 1e-8) {
+		if (p0.x < aabb.min.x || p0.x > aabb.max.x) {
+			return false;
+		}
+	}
+	else {
+		float invD = 1.0f / (p1.x - p0.x);
+		float t1 = (aabb.min.x - p0.x) * invD;
+		float t2 = (aabb.max.x - p0.x) * invD;
+		if (t1 > t2) { std::swap(t1, t2); }
+		tmin = std::max(tmin, t1);
+		tmax = std::min(tmax, t2);
+		if (tmin > tmax) { return false; }
+	}
+
+	// y軸についてチェック
+	if (std::abs(p1.y - p0.y) < 1e-8) {
+		if (p0.y < aabb.min.y || p0.y > aabb.max.y) {
+			return false;
+		}
+	}
+	else {
+		float invD = 1.0f / (p1.y - p0.y);
+		float t1 = (aabb.min.y - p0.y) * invD;
+		float t2 = (aabb.max.y - p0.y) * invD;
+		if (t1 > t2) { std::swap(t1, t2); };
+		tmin = std::max(tmin, t1);
+		tmax = std::min(tmax, t2);
+		if (tmin > tmax) { return false; }
+	}
+
+	// z軸についてチェック
+	if (std::abs(p1.z - p0.z) < 1e-8) {
+		if (p0.z < aabb.min.z || p0.z > aabb.max.z) {
+			return false;
+		}
+	}
+	else {
+		float invD = 1.0f / (p1.z - p0.z);
+		float t1 = (aabb.min.z - p0.z) * invD;
+		float t2 = (aabb.max.z - p0.z) * invD;
+		if (t1 > t2) { std::swap(t1, t2); };
+		tmin = std::max(tmin, t1);
+		tmax = std::min(tmax, t2);
+		if (tmin > tmax) { return false; }
+	}
+
+	return true;
+}

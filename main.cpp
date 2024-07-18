@@ -3,7 +3,14 @@
 
 const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
 
-bool IsCollision(const AABB& aabb, const Segment& segmet);
+struct OBB {
+    Vector3 center; //!< 中心点
+    Vector3 orientations[3]; //!< 座標軸。正規化・直行必須
+    Vector3 size; //!< 座標軸方向の長さの半分。中心から面までの距離
+};
+
+void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+bool IsCollision(const OBB& obb, const Sphere& sphere);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -20,18 +27,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     Vector3 cameraPosition{ 0.0f, 1.0f, -5.0f };
     Vector2Int clickPos{};
 
-    AABB aabb{
-        .min{-0.5f, -0.5f, -0.5f},
-        .max{0.5f, 0.5f, 0.5f},
+    OBB obb{
+        .center{0.0f, 0.0f, 0.0f},
+        .orientations{ {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },
+        .size{0.5f, 0.5f, 0.5f},
     };
 
-    Segment segment{
-        .origin{-0.7f, -0.3f, 0.0f},
-        .diff{2.0f, -0.5f, 0.0f}
+    Sphere sphere{
+        .center{0.0f, 0.0f, 0.0f},
+        .radius{1.0f},
     };
 
-    uint32_t color = 0xFFFFFFFF;
-    bool isHit = false;
+    uint32_t colorOBB = 0xFFFFFFFF;
+    bool isHitOBB = false;
+
+    Vector3 obbRotate{ 0.0f, 0.0f, 0.0f };
 
     // ウィンドウの×ボタンが押されるまでループ
     while (Novice::ProcessMessage() == 0) {
@@ -52,20 +62,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
         Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
-        aabb.min.x = (std::min)(aabb.min.x, aabb.max.x);
-        aabb.max.x = (std::max)(aabb.min.x, aabb.max.x);
-        aabb.min.y = (std::min)(aabb.min.y, aabb.max.y);
-        aabb.max.y = (std::max)(aabb.min.y, aabb.max.y);
-        aabb.min.z = (std::min)(aabb.min.z, aabb.max.z);
-        aabb.max.z = (std::max)(aabb.min.z, aabb.max.z);
+        isHitOBB = IsCollision(obb, sphere);
 
-        isHit = IsCollision(aabb, segment);
-
-        if (isHit) {
-            color = 0xFF0000FF;
+        if (isHitOBB) {
+            colorOBB = 0xFF0000FF;
         }
         else {
-            color = 0xFFFFFFFF;
+            colorOBB = 0xFFFFFFFF;
         }
 
         ///
@@ -77,17 +80,25 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         ///
 
         CameraMove(cameraRotate, cameraPosition, clickPos, keys, preKeys);
-        
+
         ImGui::Begin("Window");
-        ImGui::DragFloat3("aabb1.min", &aabb.min.x, 0.01f);
-        ImGui::DragFloat3("aabb1.max", &aabb.max.x, 0.01f);
-        ImGui::DragFloat3("sphere.center", &segment.origin.x, 0.01f);
-        ImGui::DragFloat3("sphere.radius", &segment.diff.x, 0.01f);
+        ImGui::DragFloat3("obb.center", &obb.center.x, 0.01f);
+        ImGui::DragFloat3("obb.size", &obb.size.x, 0.01f);
+        ImGui::DragFloat3("obb.rotate", &obbRotate.x, 0.01f);
+        ImGui::DragFloat3("sphere.center", &sphere.center.x, 0.01f);
+        ImGui::DragFloat("sphere.radius", &sphere.radius, 0.01f);
         ImGui::End();
 
+        // OBBの回転を計算
+        Matrix4x4 rotationMatrix = MakeRotateXYZMatrix(obbRotate);
+        obb.orientations[0] = Transform(Vector3{ 1.0f, 0.0f, 0.0f }, rotationMatrix);
+        obb.orientations[1] = Transform(Vector3{ 0.0f, 1.0f, 0.0f }, rotationMatrix);
+        obb.orientations[2] = Transform(Vector3{ 0.0f, 0.0f, 1.0f }, rotationMatrix);
+
+
         DrawGrid(viewProjectionMatrix, viewportMatrix);
-        DrawAABB(aabb, viewProjectionMatrix, viewportMatrix, color);
-        DrawLine(segment, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        DrawOBB(obb, viewProjectionMatrix, viewportMatrix, colorOBB);
+        DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
         ///
         /// ↑描画処理ここまで
@@ -107,62 +118,40 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 
-bool IsCollision(const AABB& aabb, const Segment& segment) {
-    // 線分の始点と終点を計算
-    Vector3 p0 = segment.origin;
-    Vector3 p1 = segment.origin + segment.diff;
+void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+    Vector3 vertices[8];
 
-    // 線分の各成分に対するt値の最小と最大を求める
-    float tmin = 0.0f;
-    float tmax = 1.0f;
+    // 8つの頂点を計算
+    for (int i = 0; i < 8; ++i) {
+        Vector3 vertex = obb.center;
+        vertex += obb.orientations[0] * obb.size.x * (i & 1 ? 1.0f : -1.0f);
+        vertex += obb.orientations[1] * obb.size.y * (i & 2 ? 1.0f : -1.0f);
+        vertex += obb.orientations[2] * obb.size.z * (i & 4 ? 1.0f : -1.0f);
+        vertices[i] = Transform(Transform(vertex, viewProjectionMatrix), viewportMatrix);
+    }
 
-    // x軸についてチェック
-    if (std::abs(p1.x - p0.x) < 1e-8) {
-        if (p0.x < aabb.min.x || p0.x > aabb.max.x) {
+    // 12本のエッジを描画
+    static const int indices[12][2] = {
+        { 0, 1 }, { 1, 3 }, { 3, 2 }, { 2, 0 },
+        { 4, 5 }, { 5, 7 }, { 7, 6 }, { 6, 4 },
+        { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
+    };
+
+    for (int i = 0; i < 12; ++i) {
+        Novice::DrawLine((int)vertices[indices[i][0]].x, (int)vertices[indices[i][0]].y, (int)vertices[indices[i][1]].x, (int)vertices[indices[i][1]].y, color);
+    }
+}
+
+bool IsCollision(const OBB& obb, const Sphere& sphere) {
+    Vector3 d = sphere.center - obb.center;
+
+    for (int i = 0; i < 3; ++i) {
+        float dist = std::abs(Dot(d, obb.orientations[i]));
+        if (dist > obb.size.x + sphere.radius) {
             return false;
         }
-    }
-    else {
-        float invD = 1.0f / (p1.x - p0.x);
-        float t1 = (aabb.min.x - p0.x) * invD;
-        float t2 = (aabb.max.x - p0.x) * invD;
-        if (t1 > t2) { std::swap(t1, t2); }
-        tmin = std::max(tmin, t1);
-        tmax = std::min(tmax, t2);
-        if (tmin > tmax) { return false; }
-    }
-
-    // y軸についてチェック
-    if (std::abs(p1.y - p0.y) < 1e-8) {
-        if (p0.y < aabb.min.y || p0.y > aabb.max.y) {
-            return false;
-        }
-    }
-    else {
-        float invD = 1.0f / (p1.y - p0.y);
-        float t1 = (aabb.min.y - p0.y) * invD;
-        float t2 = (aabb.max.y - p0.y) * invD;
-        if (t1 > t2) { std::swap(t1, t2); };
-        tmin = std::max(tmin, t1);
-        tmax = std::min(tmax, t2);
-        if (tmin > tmax) { return false; }
-    }
-
-    // z軸についてチェック
-    if (std::abs(p1.z - p0.z) < 1e-8) {
-        if (p0.z < aabb.min.z || p0.z > aabb.max.z) {
-            return false;
-        }
-    }
-    else {
-        float invD = 1.0f / (p1.z - p0.z);
-        float t1 = (aabb.min.z - p0.z) * invD;
-        float t2 = (aabb.max.z - p0.z) * invD;
-        if (t1 > t2) { std::swap(t1, t2); };
-        tmin = std::max(tmin, t1);
-        tmax = std::min(tmax, t2);
-        if (tmin > tmax) { return false; }
     }
 
     return true;
 }
+
