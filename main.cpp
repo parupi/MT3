@@ -3,14 +3,9 @@
 
 const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
 
-struct OBB {
-    Vector3 center; //!< 中心点
-    Vector3 orientations[3]; //!< 座標軸。正規化・直行必須
-    Vector3 size; //!< 座標軸方向の長さの半分。中心から面までの距離
-};
+bool IsCollision(const OBB& obb, const Segment& segment);
 
-void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
-bool IsCollision(const OBB& obb, const Sphere& sphere);
+
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -33,9 +28,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         .size{0.5f, 0.5f, 0.5f},
     };
 
-    Sphere sphere{
-        .center{0.0f, 0.0f, 0.0f},
-        .radius{1.0f},
+    Segment segment{
+         .origin{-0.7f, -0.3f, 0.0f},
+         .diff{2.0f, -0.5f, 0.0f}
     };
 
     uint32_t colorOBB = 0xFFFFFFFF;
@@ -62,7 +57,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
         Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
-        isHitOBB = IsCollision(obb, sphere);
+        isHitOBB = IsCollision(obb, segment);
 
         if (isHitOBB) {
             colorOBB = 0xFF0000FF;
@@ -85,8 +80,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         ImGui::DragFloat3("obb.center", &obb.center.x, 0.01f);
         ImGui::DragFloat3("obb.size", &obb.size.x, 0.01f);
         ImGui::DragFloat3("obb.rotate", &obbRotate.x, 0.01f);
-        ImGui::DragFloat3("sphere.center", &sphere.center.x, 0.01f);
-        ImGui::DragFloat("sphere.radius", &sphere.radius, 0.01f);
+        ImGui::DragFloat3("segment.origin", &segment.origin.x, 0.01f);
+        ImGui::DragFloat3("segment.diff", &segment.diff.x, 0.01f);
         ImGui::End();
 
         // OBBの回転を計算
@@ -98,7 +93,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
         DrawGrid(viewProjectionMatrix, viewportMatrix);
         DrawOBB(obb, viewProjectionMatrix, viewportMatrix, colorOBB);
-        DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        DrawLine(segment, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
         ///
         /// ↑描画処理ここまで
@@ -118,40 +113,38 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 
-void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
-    Vector3 vertices[8];
+bool IsCollision(const OBB& obb, const Segment& segment) {
+    // OBBの中心を基準にした線分の始点
+    Vector3 p = segment.origin - obb.center;
+    Vector3 d = segment.diff * 0.5f; // 線分の半分の長さ
+    Vector3 extent = obb.size; // OBBのサイズ
 
-    // 8つの頂点を計算
-    for (int i = 0; i < 8; ++i) {
-        Vector3 vertex = obb.center;
-        vertex += obb.orientations[0] * obb.size.x * (i & 1 ? 1.0f : -1.0f);
-        vertex += obb.orientations[1] * obb.size.y * (i & 2 ? 1.0f : -1.0f);
-        vertex += obb.orientations[2] * obb.size.z * (i & 4 ? 1.0f : -1.0f);
-        vertices[i] = Transform(Transform(vertex, viewProjectionMatrix), viewportMatrix);
-    }
-
-    // 12本のエッジを描画
-    static const int indices[12][2] = {
-        { 0, 1 }, { 1, 3 }, { 3, 2 }, { 2, 0 },
-        { 4, 5 }, { 5, 7 }, { 7, 6 }, { 6, 4 },
-        { 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
-    };
-
-    for (int i = 0; i < 12; ++i) {
-        Novice::DrawLine((int)vertices[indices[i][0]].x, (int)vertices[indices[i][0]].y, (int)vertices[indices[i][1]].x, (int)vertices[indices[i][1]].y, color);
-    }
-}
-
-bool IsCollision(const OBB& obb, const Sphere& sphere) {
-    Vector3 d = sphere.center - obb.center;
-
+    // OBBの座標軸を取得
+    Vector3 axes[3];
     for (int i = 0; i < 3; ++i) {
-        float dist = std::abs(Dot(d, obb.orientations[i]));
-        if (dist > obb.size.x + sphere.radius) {
-            return false;
+        axes[i] = obb.orientations[i];
+    }
+
+    // 1. OBBの軸に対する分離軸定理のテスト
+    for (int i = 0; i < 3; ++i) {
+        Vector3 axis = axes[i];
+        float e = extent.x; // OBBの半分のサイズ
+        float r = std::abs(Dot(d, axis)); // 線分の半分の長さとOBBの軸のドット積
+        float s = std::abs(Dot(p, axis)); // 線分の始点からOBBの中心までの距離とOBBの軸のドット積
+        if (s > e + r) {
+            return false; // 衝突していない
         }
     }
 
-    return true;
-}
+    // 2. 線分の方向に対する分離軸定理のテスト
+    for (int i = 0; i < 3; ++i) {
+        Vector3 axis = segment.diff; // 線分の方向
+        float e = std::abs(Dot(extent, axes[i])); // OBBのサイズと軸のドット積
+        float s = std::abs(Dot(p, axes[i])); // 始点から中心への距離とOBBの軸のドット積
+        if (s > e + std::abs(Dot(segment.diff, axes[i]))) {
+            return false; // 衝突していない
+        }
+    }
 
+    return true; // 衝突している
+}

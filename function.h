@@ -80,6 +80,11 @@ struct AABB {
 	Vector3 max;    //!< 最大点
 };
 
+struct OBB {
+	Vector3 center; //!< 中心点
+	Vector3 orientations[3]; //!< 座標軸。正規化・直行必須
+	Vector3 size; //!< 座標軸方向の長さの半分。中心から面までの距離
+};
 
 /// <summary>
 /// 3次元ベクトルを表示するための関数
@@ -214,3 +219,6 @@ void DrawAABB(const AABB& aabb, const Matrix4x4& viewProjectionMatrix, const Mat
 bool IsCollision(const AABB& aabb, const Sphere& sphere);
 
 bool IsCollision(const AABB& aabb, const Segment& segment);
+
+void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+bool IsCollision(const OBB& obb, const Sphere& sphere);

@@ -808,3 +808,41 @@ bool IsCollision(const AABB& aabb, const Segment& segment) {
 
 	return true;
 }
+
+void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 vertices[8];
+
+	// 8つの頂点を計算
+	for (int i = 0; i < 8; ++i) {
+		Vector3 vertex = obb.center;
+		vertex += obb.orientations[0] * obb.size.x * (i & 1 ? 1.0f : -1.0f);
+		vertex += obb.orientations[1] * obb.size.y * (i & 2 ? 1.0f : -1.0f);
+		vertex += obb.orientations[2] * obb.size.z * (i & 4 ? 1.0f : -1.0f);
+		vertices[i] = Transform(Transform(vertex, viewProjectionMatrix), viewportMatrix);
+	}
+
+	// 12本のエッジを描画
+	static const int indices[12][2] = {
+		{ 0, 1 }, { 1, 3 }, { 3, 2 }, { 2, 0 },
+		{ 4, 5 }, { 5, 7 }, { 7, 6 }, { 6, 4 },
+		{ 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
+	};
+
+	for (int i = 0; i < 12; ++i) {
+		Novice::DrawLine((int)vertices[indices[i][0]].x, (int)vertices[indices[i][0]].y, (int)vertices[indices[i][1]].x, (int)vertices[indices[i][1]].y, color);
+	}
+}
+
+bool IsCollision(const OBB& obb, const Sphere& sphere) {
+	Vector3 d = sphere.center - obb.center;
+
+	for (int i = 0; i < 3; ++i) {
+		float dist = std::abs(Dot(d, obb.orientations[i]));
+		if (dist > obb.size.x + sphere.radius) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
