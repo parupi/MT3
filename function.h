@@ -222,3 +222,4 @@ bool IsCollision(const AABB& aabb, const Segment& segment);
 
 void DrawOBB(const OBB& obb, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 bool IsCollision(const OBB& obb, const Sphere& sphere);
+bool IsCollision(const OBB& obb, const Segment& segment);

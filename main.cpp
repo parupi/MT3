@@ -1,11 +1,12 @@
 #define NOMINMAX
 #include "function.h"
+#include <cmath>
 
-const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
+const char kWindowTitle[] = "Bezier";
 
-bool IsCollision(const OBB& obb, const Segment& segment);
-
-
+Vector3 Leap(const Vector3& v1, const Vector3& v2, float t);
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+void DrawPoints(const Vector3 controlPoints[], int numPoints, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -22,21 +23,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     Vector3 cameraPosition{ 0.0f, 1.0f, -5.0f };
     Vector2Int clickPos{};
 
-    OBB obb{
-        .center{0.0f, 0.0f, 0.0f},
-        .orientations{ {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },
-        .size{0.5f, 0.5f, 0.5f},
+    Vector3 controlPoints[3] = {
+        {-0.8f, 0.58f, 1.0f},
+        {1.76f, 1.0f, -0.3f},
+        {0.94f, -0.7f, 2.3f},
     };
-
-    Segment segment{
-         .origin{-0.7f, -0.3f, 0.0f},
-         .diff{2.0f, -0.5f, 0.0f}
-    };
-
-    uint32_t colorOBB = 0xFFFFFFFF;
-    bool isHitOBB = false;
-
-    Vector3 obbRotate{ 0.0f, 0.0f, 0.0f };
 
     // ウィンドウの×ボタンが押されるまでループ
     while (Novice::ProcessMessage() == 0) {
@@ -57,15 +48,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
         Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
-        isHitOBB = IsCollision(obb, segment);
-
-        if (isHitOBB) {
-            colorOBB = 0xFF0000FF;
-        }
-        else {
-            colorOBB = 0xFFFFFFFF;
-        }
-
         ///
         /// ↑更新処理ここまで
         ///
@@ -77,23 +59,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         CameraMove(cameraRotate, cameraPosition, clickPos, keys, preKeys);
 
         ImGui::Begin("Window");
-        ImGui::DragFloat3("obb.center", &obb.center.x, 0.01f);
-        ImGui::DragFloat3("obb.size", &obb.size.x, 0.01f);
-        ImGui::DragFloat3("obb.rotate", &obbRotate.x, 0.01f);
-        ImGui::DragFloat3("segment.origin", &segment.origin.x, 0.01f);
-        ImGui::DragFloat3("segment.diff", &segment.diff.x, 0.01f);
+        ImGui::DragFloat3("controlPoints[0]", &controlPoints[0].x, 0.01f);
+        ImGui::DragFloat3("controlPoints[1]", &controlPoints[1].x, 0.01f);
+        ImGui::DragFloat3("controlPoints[2]", &controlPoints[2].x, 0.01f);
         ImGui::End();
 
-        // OBBの回転を計算
-        Matrix4x4 rotationMatrix = MakeRotateXYZMatrix(obbRotate);
-        obb.orientations[0] = Transform(Vector3{ 1.0f, 0.0f, 0.0f }, rotationMatrix);
-        obb.orientations[1] = Transform(Vector3{ 0.0f, 1.0f, 0.0f }, rotationMatrix);
-        obb.orientations[2] = Transform(Vector3{ 0.0f, 0.0f, 1.0f }, rotationMatrix);
-
-
         DrawGrid(viewProjectionMatrix, viewportMatrix);
-        DrawOBB(obb, viewProjectionMatrix, viewportMatrix, colorOBB);
-        DrawLine(segment, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+
+        // ベジェ曲線の描画
+        DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+
+        DrawPoints(controlPoints, 3, viewProjectionMatrix, viewportMatrix, 0x000000FF);
 
         ///
         /// ↑描画処理ここまで
@@ -113,38 +89,39 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 
-bool IsCollision(const OBB& obb, const Segment& segment) {
-    // OBBの中心を基準にした線分の始点
-    Vector3 p = segment.origin - obb.center;
-    Vector3 d = segment.diff * 0.5f; // 線分の半分の長さ
-    Vector3 extent = obb.size; // OBBのサイズ
+Vector3 Leap(const Vector3& v1, const Vector3& v2, float t)
+{
+    return {
+        v1.x + (v2.x - v1.x) * t,
+        v1.y + (v2.y - v1.y) * t,
+        v1.z + (v2.z - v1.z) * t
+    };
+}
 
-    // OBBの座標軸を取得
-    Vector3 axes[3];
-    for (int i = 0; i < 3; ++i) {
-        axes[i] = obb.orientations[i];
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+    const int numSegments = 100;
+    for (int i = 0; i < numSegments; ++i) {
+        float t1 = float(i) / numSegments;
+        float t2 = float(i + 1) / numSegments;
+
+        Vector3 p1 = Leap(Leap(controlPoint0, controlPoint1, t1), Leap(controlPoint1, controlPoint2, t1), t1);
+        Vector3 p2 = Leap(Leap(controlPoint0, controlPoint1, t2), Leap(controlPoint1, controlPoint2, t2), t2);
+
+        Vector3 screenP1 = Transform(p1, viewProjectionMatrix);
+        Vector3 screenP2 = Transform(p2, viewProjectionMatrix);
+
+        screenP1 = Transform(screenP1, viewportMatrix);
+        screenP2 = Transform(screenP2, viewportMatrix);
+
+        Novice::DrawLine((int)screenP1.x, (int)screenP1.y, (int)screenP2.x, (int)screenP2.y, color);
     }
+}
 
-    // 1. OBBの軸に対する分離軸定理のテスト
-    for (int i = 0; i < 3; ++i) {
-        Vector3 axis = axes[i];
-        float e = extent.x; // OBBの半分のサイズ
-        float r = std::abs(Dot(d, axis)); // 線分の半分の長さとOBBの軸のドット積
-        float s = std::abs(Dot(p, axis)); // 線分の始点からOBBの中心までの距離とOBBの軸のドット積
-        if (s > e + r) {
-            return false; // 衝突していない
-        }
+void DrawPoints(const Vector3 controlPoints[], int numPoints, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+    for (int i = 0; i < numPoints; ++i) {
+        Sphere screenPos = { controlPoints[i], 0.01f };
+        DrawSphere(screenPos, viewProjectionMatrix, viewportMatrix, color);
     }
-
-    // 2. 線分の方向に対する分離軸定理のテスト
-    for (int i = 0; i < 3; ++i) {
-        Vector3 axis = segment.diff; // 線分の方向
-        float e = std::abs(Dot(extent, axes[i])); // OBBのサイズと軸のドット積
-        float s = std::abs(Dot(p, axes[i])); // 始点から中心への距離とOBBの軸のドット積
-        if (s > e + std::abs(Dot(segment.diff, axes[i]))) {
-            return false; // 衝突していない
-        }
-    }
-
-    return true; // 衝突している
 }

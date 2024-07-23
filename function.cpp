@@ -846,3 +846,38 @@ bool IsCollision(const OBB& obb, const Sphere& sphere) {
 	return true;
 }
 
+bool IsCollision(const OBB& obb, const Segment& segment) {
+	// OBBの中心を基準にした線分の始点
+	Vector3 p = segment.origin - obb.center;
+	Vector3 d = segment.diff * 0.5f; // 線分の半分の長さ
+	Vector3 extent = obb.size; // OBBのサイズ
+
+	// OBBの座標軸を取得
+	Vector3 axes[3];
+	for (int i = 0; i < 3; ++i) {
+		axes[i] = obb.orientations[i];
+	}
+
+	// 1. OBBの軸に対する分離軸定理のテスト
+	for (int i = 0; i < 3; ++i) {
+		Vector3 axis = axes[i];
+		float e = extent.x; // OBBの半分のサイズ
+		float r = std::abs(Dot(d, axis)); // 線分の半分の長さとOBBの軸のドット積
+		float s = std::abs(Dot(p, axis)); // 線分の始点からOBBの中心までの距離とOBBの軸のドット積
+		if (s > e + r) {
+			return false; // 衝突していない
+		}
+	}
+
+	// 2. 線分の方向に対する分離軸定理のテスト
+	for (int i = 0; i < 3; ++i) {
+		Vector3 axis = segment.diff; // 線分の方向
+		float e = std::abs(Dot(extent, axes[i])); // OBBのサイズと軸のドット積
+		float s = std::abs(Dot(p, axes[i])); // 始点から中心への距離とOBBの軸のドット積
+		if (s > e + std::abs(Dot(segment.diff, axes[i]))) {
+			return false; // 衝突していない
+		}
+	}
+
+	return true; // 衝突している
+}
