@@ -881,3 +881,40 @@ bool IsCollision(const OBB& obb, const Segment& segment) {
 
 	return true; // 衝突している
 }
+
+Vector3 Leap(const Vector3& v1, const Vector3& v2, float t)
+{
+	return {
+		v1.x + (v2.x - v1.x) * t,
+		v1.y + (v2.y - v1.y) * t,
+		v1.z + (v2.z - v1.z) * t
+	};
+}
+
+void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+	const int numSegments = 100;
+	for (int i = 0; i < numSegments; ++i) {
+		float t1 = float(i) / numSegments;
+		float t2 = float(i + 1) / numSegments;
+
+		Vector3 p1 = Leap(Leap(controlPoint0, controlPoint1, t1), Leap(controlPoint1, controlPoint2, t1), t1);
+		Vector3 p2 = Leap(Leap(controlPoint0, controlPoint1, t2), Leap(controlPoint1, controlPoint2, t2), t2);
+
+		Vector3 screenP1 = Transform(p1, viewProjectionMatrix);
+		Vector3 screenP2 = Transform(p2, viewProjectionMatrix);
+
+		screenP1 = Transform(screenP1, viewportMatrix);
+		screenP2 = Transform(screenP2, viewportMatrix);
+
+		Novice::DrawLine((int)screenP1.x, (int)screenP1.y, (int)screenP2.x, (int)screenP2.y, color);
+	}
+}
+
+void DrawPoints(const Vector3 controlPoints[], int numPoints, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
+{
+	for (int i = 0; i < numPoints; ++i) {
+		Sphere screenPos = { controlPoints[i], 0.1f };
+		DrawSphere(screenPos, viewProjectionMatrix, viewportMatrix, color);
+	}
+}

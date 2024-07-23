@@ -2,11 +2,11 @@
 #include "function.h"
 #include <cmath>
 
-const char kWindowTitle[] = "Bezier";
+const char kWindowTitle[] = "";
 
-Vector3 Leap(const Vector3& v1, const Vector3& v2, float t);
-void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
-void DrawPoints(const Vector3 controlPoints[], int numPoints, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+void DrawPoint(const Vector3& position, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+void DrawLine(const Vector3& start, const Vector3& end, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+Vector3 TransformCoord(const Vector3& v, const Matrix4x4& m);
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -23,10 +23,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     Vector3 cameraPosition{ 0.0f, 1.0f, -5.0f };
     Vector2Int clickPos{};
 
-    Vector3 controlPoints[3] = {
-        {-0.8f, 0.58f, 1.0f},
-        {1.76f, 1.0f, -0.3f},
-        {0.94f, -0.7f, 2.3f},
+    Vector3 translates[3] = {
+        {0.2f, 1.0f, 0.0f},
+        {0.4f, 0.0f, 0.0f},
+        {0.3f, 0.0f, 0.0f},
+    };
+
+    Vector3 rotates[3] = {
+        {0.0f, 0.0f, -6.8f},
+        {0.0f, 0.0f, -1.4f},
+        {0.0f, 0.0f, 0.0f },
+    };
+
+    Vector3 scales[3] = {
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
+        {1.0f, 1.0f, 1.0f},
     };
 
     // ウィンドウの×ボタンが押されるまでループ
@@ -48,6 +60,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
         Matrix4x4 viewProjectionMatrix = Multiply(viewMatrix, projectionMatrix);
 
+        // 親子付けされた変換行列の計算
+        Matrix4x4 shoulderMatrix = MakeAffineMatrix(scales[0], rotates[0], translates[0]);
+        Matrix4x4 elbowMatrix = Multiply(shoulderMatrix, MakeAffineMatrix(scales[1], rotates[1], translates[1]));
+        Matrix4x4 handMatrix = Multiply(elbowMatrix, MakeAffineMatrix(scales[2], rotates[2], translates[2]));
+
+        // 各点の位置を抽出
+        Vector3 shoulderPos = { shoulderMatrix.m[3][0], shoulderMatrix.m[3][1], shoulderMatrix.m[3][2] };
+        Vector3 elbowPos = { elbowMatrix.m[3][0], elbowMatrix.m[3][1], elbowMatrix.m[3][2] };
+        Vector3 handPos = { handMatrix.m[3][0], handMatrix.m[3][1], handMatrix.m[3][2] };
+
         ///
         /// ↑更新処理ここまで
         ///
@@ -59,17 +81,27 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         CameraMove(cameraRotate, cameraPosition, clickPos, keys, preKeys);
 
         ImGui::Begin("Window");
-        ImGui::DragFloat3("controlPoints[0]", &controlPoints[0].x, 0.01f);
-        ImGui::DragFloat3("controlPoints[1]", &controlPoints[1].x, 0.01f);
-        ImGui::DragFloat3("controlPoints[2]", &controlPoints[2].x, 0.01f);
+        ImGui::DragFloat3("translates[0]", &translates[0].x, 0.01f);
+        ImGui::DragFloat3("rotates[0]", &rotates[1].x, 0.01f);
+        ImGui::DragFloat3("scales[0]", &scales[0].x, 0.01f);
+        ImGui::DragFloat3("translates[1]", &translates[1].x, 0.01f);
+        ImGui::DragFloat3("rotates[1]", &rotates[2].x, 0.01f);
+        ImGui::DragFloat3("scales[1]", &scales[1].x, 0.01f);
+        ImGui::DragFloat3("translates[2]", &translates[2].x, 0.01f);
+        ImGui::DragFloat3("rotates[2]", &rotates[2].x, 0.01f);
+        ImGui::DragFloat3("scales[2]", &scales[2].x, 0.01f);
         ImGui::End();
 
         DrawGrid(viewProjectionMatrix, viewportMatrix);
 
-        // ベジェ曲線の描画
-        DrawBezier(controlPoints[0], controlPoints[1], controlPoints[2], viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        // 各点の位置を描画
+        DrawPoint(shoulderPos, viewProjectionMatrix, viewportMatrix, 0xFF0000FF);
+        DrawPoint(elbowPos, viewProjectionMatrix, viewportMatrix, 0x00FF00FF);
+        DrawPoint(handPos, viewProjectionMatrix, viewportMatrix, 0x0000FFFF);
 
-        DrawPoints(controlPoints, 3, viewProjectionMatrix, viewportMatrix, 0x000000FF);
+        // 点と点の間に線を描画
+        DrawLine(shoulderPos, elbowPos, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        DrawLine(elbowPos, handPos, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
         ///
         /// ↑描画処理ここまで
@@ -89,39 +121,27 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 
-Vector3 Leap(const Vector3& v1, const Vector3& v2, float t)
-{
-    return {
-        v1.x + (v2.x - v1.x) * t,
-        v1.y + (v2.y - v1.y) * t,
-        v1.z + (v2.z - v1.z) * t
-    };
+// 点を描画する関数
+void DrawPoint(const Vector3& position, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+    Sphere sphere = { position, 0.1f };
+    DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, color);
 }
 
-void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
-{
-    const int numSegments = 100;
-    for (int i = 0; i < numSegments; ++i) {
-        float t1 = float(i) / numSegments;
-        float t2 = float(i + 1) / numSegments;
-
-        Vector3 p1 = Leap(Leap(controlPoint0, controlPoint1, t1), Leap(controlPoint1, controlPoint2, t1), t1);
-        Vector3 p2 = Leap(Leap(controlPoint0, controlPoint1, t2), Leap(controlPoint1, controlPoint2, t2), t2);
-
-        Vector3 screenP1 = Transform(p1, viewProjectionMatrix);
-        Vector3 screenP2 = Transform(p2, viewProjectionMatrix);
-
-        screenP1 = Transform(screenP1, viewportMatrix);
-        screenP2 = Transform(screenP2, viewportMatrix);
-
-        Novice::DrawLine((int)screenP1.x, (int)screenP1.y, (int)screenP2.x, (int)screenP2.y, color);
-    }
+// 線を描画する関数
+void DrawLine(const Vector3& start, const Vector3& end, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+    Vector3 startScreen = TransformCoord(start, viewProjectionMatrix);
+    startScreen = TransformCoord(startScreen, viewportMatrix);
+    Vector3 endScreen = TransformCoord(end, viewProjectionMatrix);
+    endScreen = TransformCoord(endScreen, viewportMatrix);
+    Novice::DrawLine(int(startScreen.x), int(startScreen.y), int(endScreen.x), int(endScreen.y), color);
 }
 
-void DrawPoints(const Vector3 controlPoints[], int numPoints, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
-{
-    for (int i = 0; i < numPoints; ++i) {
-        Sphere screenPos = { controlPoints[i], 0.01f };
-        DrawSphere(screenPos, viewProjectionMatrix, viewportMatrix, color);
-    }
+// 3Dベクトルを4x4行列で変換する関数
+Vector3 TransformCoord(const Vector3& v, const Matrix4x4& m) {
+    Vector3 result;
+    float w = v.x * m.m[0][3] + v.y * m.m[1][3] + v.z * m.m[2][3] + m.m[3][3];
+    result.x = (v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0] + m.m[3][0]) / w;
+    result.y = (v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1] + m.m[3][1]) / w;
+    result.z = (v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2] + m.m[3][2]) / w;
+    return result;
 }
