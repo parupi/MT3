@@ -6,6 +6,7 @@
 #include <imgui.h>
 #include "assert.h"
 #include "Vector3.h"
+#include "Matrix4x4.h"
 #include <iostream>
 #include <algorithm>
 #define _USE_MATH_DEFINES
@@ -39,10 +40,6 @@ struct Matrix2x2 {
 
 struct Matrix3x3 {
 	float m[3][3];
-};
-
-struct Matrix4x4 {
-	float m[4][4];
 };
 
 struct Sphere {
@@ -227,3 +224,7 @@ bool IsCollision(const OBB& obb, const Segment& segment);
 Vector3 Leap(const Vector3& v1, const Vector3& v2, float t);
 void DrawBezier(const Vector3& controlPoint0, const Vector3& controlPoint1, const Vector3& controlPoint2, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
 void DrawPoints(const Vector3 controlPoints[], int numPoints, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+
+void DrawPoint(const Vector3& position, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+void DrawLine(const Vector3& start, const Vector3& end, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color);
+Vector3 TransformCoord(const Vector3& v, const Matrix4x4& m);

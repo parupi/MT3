@@ -918,3 +918,29 @@ void DrawPoints(const Vector3 controlPoints[], int numPoints, const Matrix4x4& v
 		DrawSphere(screenPos, viewProjectionMatrix, viewportMatrix, color);
 	}
 }
+
+// 点を描画する関数
+void DrawPoint(const Vector3& position, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Sphere sphere = { position, 0.1f };
+	DrawSphere(sphere, viewProjectionMatrix, viewportMatrix, color);
+}
+
+// 線を描画する関数
+void DrawLine(const Vector3& start, const Vector3& end, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color) {
+	Vector3 startScreen = TransformCoord(start, viewProjectionMatrix);
+	startScreen = TransformCoord(startScreen, viewportMatrix);
+	Vector3 endScreen = TransformCoord(end, viewProjectionMatrix);
+	endScreen = TransformCoord(endScreen, viewportMatrix);
+	Novice::DrawLine(int(startScreen.x), int(startScreen.y), int(endScreen.x), int(endScreen.y), color);
+}
+
+// 3Dベクトルを4x4行列で変換する関数
+Vector3 TransformCoord(const Vector3& v, const Matrix4x4& m) {
+	Vector3 result;
+	float w = v.x * m.m[0][3] + v.y * m.m[1][3] + v.z * m.m[2][3] + m.m[3][3];
+	result.x = (v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0] + m.m[3][0]) / w;
+	result.y = (v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1] + m.m[3][1]) / w;
+	result.z = (v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2] + m.m[3][2]) / w;
+	return result;
+}
+
