@@ -21,6 +21,8 @@ struct Ball {
     unsigned int color; // 色
 };
 
+//void DrawLine(Vector3 v1, Vector3 v2, Matrix4x4 viewProjectionMatrix, Matrix4x4 viewportMatrix, uint32_t color);
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -63,6 +65,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         /// ↓更新処理ここから
         ///
 
+        Matrix4x4 cameraMatrix = MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, cameraRotate, cameraPosition + cameraTranslate);
+        Matrix4x4 viewMatrix = Inverse(cameraMatrix);
+        Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kWindowWidth) / float(kWindowHeight), 0.1f, 100.0f);
+        Matrix4x4 viewportMatrix = MakeViewportMatrix(0, 0, float(kWindowWidth), float(kWindowHeight), 0.0f, 1.0f);
+        Matrix4x4 viewProjectionMatrix = viewMatrix * projectionMatrix;
+
         Vector3 diff = ball.position - spring.anchor;
         float length = Length(diff);
         if (length != 0.0f) {
@@ -90,10 +98,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         CameraMove(cameraRotate, cameraPosition, clickPos, keys, preKeys);
 
         ImGui::Begin("Window");
-
+        ImGui::DragFloat3("ballPosition", &ball.position.x, 0.01f);
         ImGui::End();
 
-        DrawGrid()
+        DrawGrid(viewProjectionMatrix, viewportMatrix);
+        DrawLine(spring.anchor, ball.position, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        DrawPoint(ball.position, viewProjectionMatrix, viewportMatrix, ball.color);
 
         ///
         /// ↑描画処理ここまで
@@ -113,4 +123,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     return 0;
 }
 
-
+//void DrawLine(Vector3 v1, Vector3 v2, Matrix4x4 viewProjection, Matrix4x4 viewport, uint32_t color)
+//{
+//    // 始点と終点を変換
+//    Vector3 transformedStart = Transform(Transform(v1, viewProjection), viewport);
+//    Vector3 transformedEnd = Transform(Transform(v2, viewProjection), viewport);
+//
+//    // スクリーン座標に変換
+//    int x1 = static_cast<int>(transformedStart.x);
+//    int y1 = static_cast<int>(transformedStart.y);
+//    int x2 = static_cast<int>(transformedEnd.x);
+//    int y2 = static_cast<int>(transformedEnd.y);
+//
+//    // 線を描画
+//    Novice::DrawLine(x1, y1, x2, y2, color);
+//}

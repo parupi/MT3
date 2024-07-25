@@ -13,7 +13,13 @@ Vector3 Vector3::operator*(const Vector3& obj) const { return Vector3(x * obj.x,
 Vector3 Vector3::operator*(const float& scalar) const { return Vector3(x * scalar, y * scalar, z * scalar); }
 
 // 除算
-Vector3 Vector3::operator/(const Vector3& obj) const { return Vector3(x / obj.x, y / obj.y, z / obj.z); }
+Vector3 Vector3::operator/(const Vector3& obj) const {
+	return Vector3(
+		obj.x != 0 ? x / obj.x : 0,
+		obj.y != 0 ? y / obj.y : 0,
+		obj.z != 0 ? z / obj.z : 0
+	);
+}
 
 // +=
 Vector3& Vector3::operator+=(const Vector3& other) {
