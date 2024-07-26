@@ -3,7 +3,7 @@
 const char kWindowTitle[] = "LE2B_08_カワグチ_ハルキ";
 
 struct Triangle {
-	Vector3 vertices[3];
+	Vector3Class vertices[3];
 };
 
 bool IsCollision(const Triangle& triangle, const Segment& segment);
@@ -19,9 +19,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     char keys[256] = { 0 };
     char preKeys[256] = { 0 };
 
-    Vector3 cameraTranslate{ 0.0f, 1.9f, -6.49f };
-    Vector3 cameraRotate{ 0.26f, 0.0f, 0.0f };
-    Vector3 cameraPosition{ 0.0f, 1.0f, -5.0f };
+    Vector3Class cameraTranslate{ 0.0f, 1.9f, -6.49f };
+    Vector3Class cameraRotate{ 0.26f, 0.0f, 0.0f };
+    Vector3Class cameraPosition{ 0.0f, 1.0f, -5.0f };
     Vector2Int clickPos{};
 
     Plane plane{ {0.0f,1.0f,0.0f}, 1.0f };
@@ -101,9 +101,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 bool IsCollision(const Triangle& triangle, const Segment& segment)
 {
     // 三角形の頂点から法線ベクトルを計算
-    Vector3 edge1 = triangle.vertices[1] - triangle.vertices[0];
-    Vector3 edge2 = triangle.vertices[2] - triangle.vertices[0];
-    Vector3 normal = Cross(edge1, edge2);
+    Vector3Class edge1 = triangle.vertices[1] - triangle.vertices[0];
+    Vector3Class edge2 = triangle.vertices[2] - triangle.vertices[0];
+    Vector3Class normal = Cross(edge1, edge2);
     normal = Normalize(normal);
 
     // 平面の方程式を定義
@@ -123,13 +123,13 @@ bool IsCollision(const Triangle& triangle, const Segment& segment)
     // tが0から1の間にある場合、交点が線分上にある
     if (t >= 0.0f && t <= 1.0f) {
         // 交点の座標を計算
-        Vector3 intersection = segment.origin + segment.diff * t;
+        Vector3Class intersection = segment.origin + segment.diff * t;
 
         // 交点が三角形内にあるかを判定
         for (int i = 0; i < 3; ++i) {
-            Vector3 edge = triangle.vertices[(i + 1) % 3] - triangle.vertices[i];
-            Vector3 vp = intersection - triangle.vertices[i];
-            Vector3 crossProduct = Cross(edge, vp);
+            Vector3Class edge = triangle.vertices[(i + 1) % 3] - triangle.vertices[i];
+            Vector3Class vp = intersection - triangle.vertices[i];
+            Vector3Class crossProduct = Cross(edge, vp);
             if (Dot(normal, crossProduct) < 0) {
                 return false;
             }
@@ -142,7 +142,7 @@ bool IsCollision(const Triangle& triangle, const Segment& segment)
 
 void DrawTriangle(const Triangle& triangle, const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMatrix, uint32_t color)
 {
-	Vector3 transformedVertices[3];
+	Vector3Class transformedVertices[3];
 	for (int i = 0; i < 3; ++i) {
 		transformedVertices[i] = Transform(Transform(triangle.vertices[i], viewProjectionMatrix), viewportMatrix);
 	}

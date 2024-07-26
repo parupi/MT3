@@ -1,7 +1,7 @@
 #define NOMINMAX
 #include "function.h"
 
-void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label)
+void VectorScreenPrintf(int x, int y, const Vector3Class& vector, const char* label)
 {
 	Novice::ScreenPrintf(x, y, "%.02f", vector.x);
 	Novice::ScreenPrintf(x + kColumnWidth, y, "%.02f", vector.y);
@@ -9,39 +9,39 @@ void VectorScreenPrintf(int x, int y, const Vector3& vector, const char* label)
 	Novice::ScreenPrintf(x + kColumnWidth * 3, y, "%s", label);
 }
 
-Vector3 Add(const Vector3& v1, const Vector3& v2)
+Vector3Class Add(const Vector3Class& v1, const Vector3Class& v2)
 {
-	return Vector3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
+	return Vector3Class(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 }
 
-Vector3 Subtract(const Vector3& v1, const Vector3& v2)
+Vector3Class Subtract(const Vector3Class& v1, const Vector3Class& v2)
 {
-	return Vector3(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+	return Vector3Class(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
 }
 
-Vector3 Multiply(float scalar, const Vector3& v)
+Vector3Class Multiply(float scalar, const Vector3Class& v)
 {
-	return Vector3(scalar * v.x, scalar * v.y, scalar * v.z);
+	return Vector3Class(scalar * v.x, scalar * v.y, scalar * v.z);
 }
 
-float Dot(const Vector3& v1, const Vector3& v2)
+float Dot(const Vector3Class& v1, const Vector3Class& v2)
 {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
 }
 
-float Length(const Vector3& v)
+float Length(const Vector3Class& v)
 {
 	return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
-float MagnitudeSquared(const Vector3& v)
+float MagnitudeSquared(const Vector3Class& v)
 {
 	return (v.x * v.x) + (v.y * v.y) + (v.z * v.z);
 }
 
-Vector3 Normalize(const Vector3& v)
+Vector3Class Normalize(const Vector3Class& v)
 {
-	return Vector3(v.x / Length(v), v.y / Length(v), v.z / Length(v));
+	return Vector3Class(v.x / Length(v), v.y / Length(v), v.z / Length(v));
 }
 
 void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label)
@@ -167,7 +167,7 @@ Matrix4x4 MakeIdentity4x4()
 	};
 }
 
-Matrix4x4 MakeTranslateMatrix(const Vector3& translate)
+Matrix4x4 MakeTranslateMatrix(const Vector3Class& translate)
 {
 	return {
 		1, 0, 0, 0,
@@ -177,7 +177,7 @@ Matrix4x4 MakeTranslateMatrix(const Vector3& translate)
 	};
 }
 
-Matrix4x4 MakeScaleMatrix(const Vector3& scale)
+Matrix4x4 MakeScaleMatrix(const Vector3Class& scale)
 {
 	return {
 		scale.x, 0, 0, 0,
@@ -187,9 +187,9 @@ Matrix4x4 MakeScaleMatrix(const Vector3& scale)
 	};
 }
 
-Vector3 Transform(const Vector3& vector, const Matrix4x4& matrix)
+Vector3Class Transform(const Vector3Class& vector, const Matrix4x4& matrix)
 {
-	Vector3 result;
+	Vector3Class result;
 	result.x = vector.x * matrix.m[0][0] + vector.y * matrix.m[1][0] + vector.z * matrix.m[2][0] + 1.0f * matrix.m[3][0];
 	result.y = vector.x * matrix.m[0][1] + vector.y * matrix.m[1][1] + vector.z * matrix.m[2][1] + 1.0f * matrix.m[3][1];
 	result.z = vector.x * matrix.m[0][2] + vector.y * matrix.m[1][2] + vector.z * matrix.m[2][2] + 1.0f * matrix.m[3][2];
@@ -230,12 +230,12 @@ Matrix4x4 MakeRotateZMatrix(float radian)
 	};
 }
 
-Matrix4x4 MakeRotateXYZMatrix(Vector3& radian)
+Matrix4x4 MakeRotateXYZMatrix(Vector3Class& radian)
 {
 	return { Multiply(Multiply(MakeRotateXMatrix(radian.x), MakeRotateYMatrix(radian.y)), MakeRotateZMatrix(radian.z)) };
 }
 
-Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate)
+Matrix4x4 MakeAffineMatrix(const Vector3Class& scale, const Vector3Class& rotate, const Vector3Class& translate)
 {
 	Matrix4x4 scaleMatrix = MakeScaleMatrix(scale);
 	Matrix4x4 translateMatrix = MakeTranslateMatrix(translate);
@@ -261,15 +261,15 @@ Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, f
 	return { width / 2, 0, 0, 0, 0, -height / 2, 0, 0, 0, 0, maxDepth - minDepth, 0, left + (width / 2), top + (height / 2), minDepth, 1 };
 }
 
-Vector3 Multiply(const Matrix4x4& mat, const Vector3& vec) {
-	Vector3 result;
+Vector3Class Multiply(const Matrix4x4& mat, const Vector3Class& vec) {
+	Vector3Class result;
 	result.x = mat.m[0][0] * vec.x + mat.m[0][1] * vec.y + mat.m[0][2] * vec.z + mat.m[0][3];
 	result.y = mat.m[1][0] * vec.x + mat.m[1][1] * vec.y + mat.m[1][2] * vec.z + mat.m[1][3];
 	result.z = mat.m[2][0] * vec.x + mat.m[2][1] * vec.y + mat.m[2][2] * vec.z + mat.m[2][3];
 	return result;
 }
 
-Vector3 Cross(const Vector3& v1, const Vector3& v2)
+Vector3Class Cross(const Vector3Class& v1, const Vector3Class& v2)
 {
 	return { v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x };
 }
@@ -292,7 +292,7 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 	const float kLatEvery = pi / kSubdivision;
 	const float kLonEvery = (2 * pi) / kSubdivision;
 
-	Vector3 a, b, c, d;
+	Vector3Class a, b, c, d;
 
 	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
 		float lat = -pi / 2.0f + kLatEvery * latIndex;
@@ -328,10 +328,10 @@ void DrawSphere(const Sphere& sphere, const Matrix4x4& viewProjectionMatrix, con
 			};
 
 			// Transform to screen space
-			Vector3 screenA = Transform(Transform(a, viewProjectionMatrix), viewportMatrix);
-			Vector3 screenB = Transform(Transform(b, viewProjectionMatrix), viewportMatrix);
-			Vector3 screenC = Transform(Transform(c, viewProjectionMatrix), viewportMatrix);
-			Vector3 screenD = Transform(Transform(d, viewProjectionMatrix), viewportMatrix);
+			Vector3Class screenA = Transform(Transform(a, viewProjectionMatrix), viewportMatrix);
+			Vector3Class screenB = Transform(Transform(b, viewProjectionMatrix), viewportMatrix);
+			Vector3Class screenC = Transform(Transform(c, viewProjectionMatrix), viewportMatrix);
+			Vector3Class screenD = Transform(Transform(d, viewProjectionMatrix), viewportMatrix);
 
 			// Draw lines between the vertices to create the sphere wireframe
 			Novice::DrawLine((int)screenA.x, (int)screenA.y, (int)screenB.x, (int)screenB.y, color);
@@ -347,15 +347,15 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 	const uint32_t kSubdivision = 10;
 	const float kGridEvery = (kGridHalfWidth * 2.0f) / float(kSubdivision);
 
-	Vector3 zLineStart;
-	Vector3 zLineEnd;
-	Vector3 xLineStart;
-	Vector3 xLineEnd;
+	Vector3Class zLineStart;
+	Vector3Class zLineEnd;
+	Vector3Class xLineStart;
+	Vector3Class xLineEnd;
 
 	for (uint32_t xIndex = 0; xIndex <= kSubdivision; ++xIndex) {
 
-		zLineStart = Vector3(xIndex * kGridEvery - kGridHalfWidth, 0, 2);
-		zLineEnd = Vector3(xIndex * kGridEvery - kGridHalfWidth, 0, -6);
+		zLineStart = Vector3Class(xIndex * kGridEvery - kGridHalfWidth, 0, 2);
+		zLineEnd = Vector3Class(xIndex * kGridEvery - kGridHalfWidth, 0, -6);
 
 		//スクリーン座標系まで変換をかける
 		Matrix4x4 startWorldMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, zLineStart);
@@ -364,11 +364,11 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		Matrix4x4 startwvpMatrix = Multiply(startWorldMatrix, viewProjectionMatrix);
 		Matrix4x4 endwvpMatrix = Multiply(startWorldMatrix, viewProjectionMatrix);
 
-		Vector3 startLocal = Transform(zLineStart, startwvpMatrix);
-		Vector3 endLocal = Transform(zLineEnd, endwvpMatrix);
+		Vector3Class startLocal = Transform(zLineStart, startwvpMatrix);
+		Vector3Class endLocal = Transform(zLineEnd, endwvpMatrix);
 
-		Vector3 startScreen = Transform(startLocal, viewportMatrix);
-		Vector3 endScreen = Transform(endLocal, viewportMatrix);
+		Vector3Class startScreen = Transform(startLocal, viewportMatrix);
+		Vector3Class endScreen = Transform(endLocal, viewportMatrix);
 
 		//変換した座標を使って表示、色は薄い灰色(0xAAAAAAFF)。原点は黒
 		if (xIndex == kSubdivision / 2)
@@ -383,8 +383,8 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 	}
 
 	for (uint32_t zIndex = 0; zIndex <= kSubdivision; ++zIndex) {
-		xLineStart = Vector3(2, 0, zIndex * kGridEvery - kGridHalfWidth);
-		xLineEnd = Vector3(-2, 0, zIndex * kGridEvery - kGridHalfWidth);
+		xLineStart = Vector3Class(2, 0, zIndex * kGridEvery - kGridHalfWidth);
+		xLineEnd = Vector3Class(-2, 0, zIndex * kGridEvery - kGridHalfWidth);
 
 		//スクリーン座標系まで変換をかける
 		Matrix4x4 startWorldMatrix = MakeAffineMatrix({ 1.0f,1.0f,1.0f }, { 0.0f,0.0f,0.0f }, xLineStart);
@@ -393,11 +393,11 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 		Matrix4x4 startwvpMatrix = Multiply(startWorldMatrix, viewProjectionMatrix);
 		Matrix4x4 endwvpMatrix = Multiply(endWorldMatrix, viewProjectionMatrix);
 
-		Vector3 startLocal = Transform(xLineStart, startwvpMatrix);
-		Vector3 endLocal = Transform(xLineEnd, endwvpMatrix);
+		Vector3Class startLocal = Transform(xLineStart, startwvpMatrix);
+		Vector3Class endLocal = Transform(xLineEnd, endwvpMatrix);
 
-		Vector3 startScreen = Transform(startLocal, viewportMatrix);
-		Vector3 endScreen = Transform(endLocal, viewportMatrix);
+		Vector3Class startScreen = Transform(startLocal, viewportMatrix);
+		Vector3Class endScreen = Transform(endLocal, viewportMatrix);
 
 		//変換した座標を使って表示、色は薄い灰色(0xAAAAAAFF)。原点は黒
 		if (zIndex == kSubdivision / 2)
@@ -412,11 +412,11 @@ void DrawGrid(const Matrix4x4& viewProjectionMatrix, const Matrix4x4& viewportMa
 
 }
 
-Vector3 Project(const Vector3& v1, const Vector3& v2) {
+Vector3Class Project(const Vector3Class& v1, const Vector3Class& v2) {
 	return Multiply(Dot(v1, Normalize(v2)), Normalize(v2));
 }
 
-Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
+Vector3Class ClosestPoint(const Vector3Class& point, const Segment& segment) {
 	// セグメントの方向ベクトルの長さの二乗
 	float segLengthSquared = Length(segment.diff) * Length(segment.diff);
 
@@ -426,7 +426,7 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	}
 
 	// point から segment.origin へのベクトル
-	Vector3 diffPointOrigin = point - segment.origin;
+	Vector3Class diffPointOrigin = point - segment.origin;
 
 	// diffPointOrigin を segment.diff に射影したスカラー t を計算
 	float t = Dot(diffPointOrigin, segment.diff) / segLengthSquared;
@@ -435,7 +435,7 @@ Vector3 ClosestPoint(const Vector3& point, const Segment& segment) {
 	t = std::max(0.0f, std::min(1.0f, t));
 
 	// 最近接点の計算
-	Vector3 closestPoint = segment.origin + segment.diff * t;
+	Vector3Class closestPoint = segment.origin + segment.diff * t;
 
 	return closestPoint;
 }
@@ -464,7 +464,7 @@ bool IsCollision(const Sphere& sphere, const Plane& plane)
 }
 
 
-Vector3 Perpendicular(const Vector3& vector) {
+Vector3Class Perpendicular(const Vector3Class& vector) {
 	if (vector.x != 0.0f || vector.y != 0.0f) {
 		return{ -vector.y, vector.x, 0.0f };
 	}
@@ -472,17 +472,17 @@ Vector3 Perpendicular(const Vector3& vector) {
 }
 
 void DrawPlane(const Plane& plane, const Matrix4x4& viewProjection, const Matrix4x4& viewport, uint32_t color) {
-	Vector3 center = Multiply(plane.distance, plane.normal);	// 1
-	Vector3 perpendiculars[4];
+	Vector3Class center = Multiply(plane.distance, plane.normal);	// 1
+	Vector3Class perpendiculars[4];
 	perpendiculars[0] = Normalize(Perpendicular(plane.normal));		// 2
 	perpendiculars[1] = { -perpendiculars[0].x, -perpendiculars[0].y, -perpendiculars[0].z };		// 3
 	perpendiculars[2] = Cross(plane.normal, perpendiculars[0]);		// 4
 	perpendiculars[3] = { -perpendiculars[2].x,  -perpendiculars[2].y, -perpendiculars[2].z };		// 5
 	// 6
-	Vector3 points[4];
+	Vector3Class points[4];
 	for (int32_t index = 0; index < 4; ++index) {
-		Vector3 extend = Multiply(2.0f, perpendiculars[index]);
-		Vector3 point = Add(center, extend);
+		Vector3Class extend = Multiply(2.0f, perpendiculars[index]);
+		Vector3Class point = Add(center, extend);
 		points[index] = Transform(Transform(point, viewProjection), viewport);
 	}
 	Novice::DrawLine(int(points[0].x), int(points[0].y), int(points[2].x), int(points[2].y), color);
@@ -491,7 +491,7 @@ void DrawPlane(const Plane& plane, const Matrix4x4& viewProjection, const Matrix
 	Novice::DrawLine(int(points[3].x), int(points[3].y), int(points[0].x), int(points[0].y), color);
 }
 
-void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int& clickPosition, char* keys, char* preKeys) {
+void CameraMove(Vector3Class& cameraRotation, Vector3Class& cameraTranslation, Vector2Int& clickPosition, char* keys, char* preKeys) {
 	// カーソルを動かすときの感度
 	const float mouseSensitivity = 0.003f;
 	// カメラの移動速度
@@ -504,13 +504,13 @@ void CameraMove(Vector3& cameraRotation, Vector3& cameraTranslation, Vector2Int&
 
 	// 回転を考慮する
 	Matrix4x4 rotationMatrix = MakeRotateXYZMatrix(cameraRotation);
-	Vector3 X = { 1.0f, 0.0f, 0.0f };
-	Vector3 Y = { 0.0f, 1.0f, 0.0f };
-	Vector3 Z = { 0.0f, 0.0f, -1.0f };
+	Vector3Class X = { 1.0f, 0.0f, 0.0f };
+	Vector3Class Y = { 0.0f, 1.0f, 0.0f };
+	Vector3Class Z = { 0.0f, 0.0f, -1.0f };
 
-	Vector3 rotatedX = Transform(X, rotationMatrix);
-	Vector3 rotatedY = Transform(Y, rotationMatrix);
-	Vector3 rotatedZ = Transform(Z, rotationMatrix);
+	Vector3Class rotatedX = Transform(X, rotationMatrix);
+	Vector3Class rotatedY = Transform(Y, rotationMatrix);
+	Vector3Class rotatedZ = Transform(Z, rotationMatrix);
 
 	if (keys[DIK_SPACE] && preKeys[DIK_SPACE] == 0) {
 		isDebugCamera = !isDebugCamera;
@@ -609,8 +609,8 @@ bool IsCollision(const Segment& segment, const Plane& plane)
 
 void DrawLine(const Segment& segment, const Matrix4x4& viewProjection, const Matrix4x4& viewport, uint32_t color) {
 	// 始点と終点を変換
-	Vector3 transformedStart = Transform(Transform(segment.origin, viewProjection), viewport);
-	Vector3 transformedEnd = Transform(Transform(segment.diff, viewProjection), viewport);
+	Vector3Class transformedStart = Transform(Transform(segment.origin, viewProjection), viewport);
+	Vector3Class transformedEnd = Transform(Transform(segment.diff, viewProjection), viewport);
 
 	// スクリーン座標に変換
 	int x1 = static_cast<int>(transformedStart.x);
