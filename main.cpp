@@ -4,6 +4,14 @@
 
 const char kWindowTitle[] = "";
 
+struct ConicalPendulum {
+    Vector3 anchor; // アンカーポイント
+    float length; // 紐の長さ
+    float halfApexAngle; // 円錐の頂角の半分
+    float angle; // 現在の角度
+    float angularVelocity; // 角速度ω
+};
+
 struct Pendulum {
     Vector3 anchor; // アンカーポイント。固定された端の位置
     float length; // 紐の長さ
@@ -29,12 +37,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
     Vector3 position{};
 
-    Pendulum pendulum;
-    pendulum.anchor = { 0.0f, 1.0f, 0.0f };
-    pendulum.length = 0.8f;
-    pendulum.angle = 0.7f;
-    pendulum.angularVelocity = 0.0f;
-    pendulum.angularAcceleration = 0.0f;
+    ConicalPendulum conicalPendulum;
+    conicalPendulum.anchor = { 0.0f, 1.0f, 0.0f };
+    conicalPendulum.length = 0.8f;
+    conicalPendulum.halfApexAngle = 0.7f;
+    conicalPendulum.angle = 0.0f;
+    conicalPendulum.angularVelocity = 0.0f;
 
     float deltaTime = 1.0f / 60.0f;
     bool isStart = false;
@@ -59,14 +67,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Matrix4x4 viewProjectionMatrix = viewMatrix * projectionMatrix;
 
         if (isStart) {
-            pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
-            pendulum.angularVelocity += pendulum.angularAcceleration * deltaTime;
-            pendulum.angle += pendulum.angularVelocity * deltaTime;
+            conicalPendulum.angularVelocity = std::sqrt(9.8f / (conicalPendulum.length * std::cos(conicalPendulum.halfApexAngle)));
+            conicalPendulum.angle += conicalPendulum.angularVelocity * deltaTime;
         }
 
-        position.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
-        position.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
-        position.z = pendulum.anchor.z;
+        float radius = std::sin(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+        float height = std::cos(conicalPendulum.halfApexAngle) * conicalPendulum.length;
+
+        position.x = conicalPendulum.anchor.x + std::cos(conicalPendulum.angle) * radius;
+        position.y = conicalPendulum.anchor.y - height;
+        position.z = conicalPendulum.anchor.z - std::sin(conicalPendulum.angle) * radius;
 
         ///
         /// ↑更新処理ここまで
@@ -85,7 +95,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         ImGui::End();
 
         DrawGrid(viewProjectionMatrix, viewportMatrix);
-        DrawLine(pendulum.anchor, position, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
+        DrawLine(conicalPendulum.anchor, position, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
         DrawPoint(position, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
         ///
