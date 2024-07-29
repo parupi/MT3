@@ -4,6 +4,14 @@
 
 const char kWindowTitle[] = "";
 
+struct Pendulum {
+    Vector3 anchor; // アンカーポイント。固定された端の位置
+    float length; // 紐の長さ
+    float angle; // 現在の角度
+    float angularVelocity; // 角速度ω
+    float angularAcceleration; // 各加速度
+};
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -20,13 +28,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     Vector2Int clickPos{};
 
     Vector3 position{};
-    Vector3 center{ 0, 0, 0 };
 
-    float radius = 0.8f;
+    Pendulum pendulum;
+    pendulum.anchor = { 0.0f, 1.0f, 0.0f };
+    pendulum.length = 0.8f;
+    pendulum.angle = 0.7f;
+    pendulum.angularVelocity = 0.0f;
+    pendulum.angularAcceleration = 0.0f;
 
-    float angularVelocity = 3.14f;
-    float angle = 0.0f;
-
+    float deltaTime = 1.0f / 60.0f;
     bool isStart = false;
 
     // ウィンドウの×ボタンが押されるまでループ
@@ -49,12 +59,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         Matrix4x4 viewProjectionMatrix = viewMatrix * projectionMatrix;
 
         if (isStart) {
-            angle += angularVelocity / 120.0f;
+            pendulum.angularAcceleration = -(9.8f / pendulum.length) * std::sin(pendulum.angle);
+            pendulum.angularVelocity += pendulum.angularAcceleration * deltaTime;
+            pendulum.angle += pendulum.angularVelocity * deltaTime;
         }
 
-        position.x = center.x + std::cos(angle) * radius;
-        position.y = center.y + std::sin(angle) * radius;
-        position.z = center.z;
+        position.x = pendulum.anchor.x + std::sin(pendulum.angle) * pendulum.length;
+        position.y = pendulum.anchor.y - std::cos(pendulum.angle) * pendulum.length;
+        position.z = pendulum.anchor.z;
 
         ///
         /// ↑更新処理ここまで
@@ -73,6 +85,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         ImGui::End();
 
         DrawGrid(viewProjectionMatrix, viewportMatrix);
+        DrawLine(pendulum.anchor, position, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
         DrawPoint(position, viewProjectionMatrix, viewportMatrix, 0xFFFFFFFF);
 
         ///
